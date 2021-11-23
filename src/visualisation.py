@@ -53,7 +53,7 @@ class SubgraphVisualisation:
         self.put_weighted_edges(subgraph.edges, edge_style)
         self.put_nodes(subgraph.nodes, node_color)
 
-    def draw(self):
+    def draw(self, **kwargs):
         nx.draw_networkx(
             self.graph,
             edgelist=self.edgelist,
@@ -62,7 +62,8 @@ class SubgraphVisualisation:
             node_color=self.node_colors,
             width=self.edge_widths,
             edge_color=self.edge_colors,
-            edge_cmap = plt.get_cmap("Oranges")
+            edge_cmap = plt.get_cmap("Oranges"),
+            **kwargs
         )
 
 

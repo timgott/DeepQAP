@@ -1,4 +1,5 @@
 import math
+from typing import List
 import networkx as nx
 import numpy as np
 from networkx import Graph
@@ -8,9 +9,9 @@ class GraphAssignmentProblem:
     graph_source: Graph
     graph_target: Graph
     size: int
-    assignment: list[int]
-    unassigned_variables: list[int]
-    unassigned_targets: list[int]
+    assignment: List[int]
+    unassigned_variables: List[int]
+    unassigned_targets: List[int]
 
     # edge_weights: (start, end): weight
     def __init__(self, graph_source: Graph, graph_target: Graph):
@@ -56,14 +57,19 @@ class GraphAssignmentProblem:
         return value
 
     # I/O
-    def from_qaplib_string(qaplib_str):
+    def from_qaplib_string(qaplib_str, normalize=False):
         data = qaplib_str.split()
         size = int(data[0])
 
         assert len(data) == 1 + 2 * size*size
 
         def parse_matrix(data, offset, size):
-            return np.array(data[offset:offset + size*size]).reshape((size, size))
+            # format and optionally normalize
+            array = np.array(data[offset:offset + size*size]).reshape((size, size))
+            if normalize:
+                return array / np.max(array)
+            else:
+                return array
 
         float_data = [float(x) for x in data[1:]]
         graph_a = nx.from_numpy_array(parse_matrix(float_data, 0, size))
