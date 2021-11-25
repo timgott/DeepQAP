@@ -1,24 +1,41 @@
 import math
+import random
 from qap import GraphAssignmentProblem
 
 def solve_qap_backtracking(qap: GraphAssignmentProblem):
+    variables = list(qap.graph_source.nodes)
+    unassigned_targets = list(qap.graph_target.nodes)
+    current_assignment = [None] * qap.size
+
+    best_assignment = None
+    best_value = math.inf
+
     def recurse(depth):
+        nonlocal best_value, best_assignment, current_assignment
+
+        # fully assigned?
         if depth == qap.size:
-            return qap.compute_value(), []
-
-        variable = depth
-        best_value = math.inf
-        best_assignment = None
-        for target in qap.unassigned_targets:
-            qap.assign(variable, target)
-            value, assignment = recurse(depth + 1)
-            qap.unassign(variable)
-
-            # Keep minimum value
+            value = qap.compute_value(current_assignment)
             if value < best_value:
                 best_value = value
-                best_assignment = [(variable, target)] + assignment
+                best_assignment = current_assignment[:]
+            return
 
-        return best_value, best_assignment
+        variable = variables[depth]
+        for target in unassigned_targets:
+            current_assignment[variable] = target
+            unassigned_targets.remove(target)
+            recurse(depth + 1)
+            unassigned_targets.append(target)
+        
+        current_assignment[variable] = None
+
+        return
     
-    return recurse(0)
+    recurse(0)
+    return best_value, best_assignment
+
+def random_assignment(qap: GraphAssignmentProblem):
+    unassigned_targets = list(qap.graph_target.nodes)
+    return random.shuffle(unassigned_targets)
+    

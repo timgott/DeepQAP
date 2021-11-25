@@ -1,23 +1,7 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 from networkx.algorithms.shortest_paths import weighted
-
-class AssignmentGraph:
-    def __init__(self, a: nx.Graph, b: nx.Graph, assignment) -> None:
-        # Rename nodes in b for joining
-        offset = len(a)
-        mapping = dict(zip(b, range(offset, len(b) + offset)))
-        b_relabeled = nx.relabel_nodes(b, mapping)
-
-        # Create joined graph
-        self.graph = nx.union(a, b_relabeled)
-
-        # Add assignment edges
-        self.assignment_edges = [(x, mapping[y]) for x,y in assignment]
-        self.graph.add_edges_from(self.assignment_edges)
-
-        self.subgraph_a = self.graph.subgraph(a.nodes)
-        self.subgraph_b = self.graph.subgraph(b_relabeled.nodes)
+from qap import AssignmentGraph, GraphAssignmentProblem
 
 class SubgraphVisualisation:
     def __init__(self, graph) -> None:
@@ -66,9 +50,12 @@ class SubgraphVisualisation:
             **kwargs
         )
 
+def draw_qap(qap: GraphAssignmentProblem, assignment):
+    assignment_graph = AssignmentGraph(qap.graph_source, qap.graph_target, assignment)
+    draw_assignment_graph(assignment_graph)
 
-def draw_graph_assignment(a: nx.Graph, b: nx.Graph, assignment):
-    assignment_graph = AssignmentGraph(a, b, assignment)
+
+def draw_assignment_graph(assignment_graph: AssignmentGraph):
     visualization = SubgraphVisualisation(assignment_graph.graph)
     visualization.put_subgraph(assignment_graph.subgraph_a, node_color=(1,0.5,0), edge_style="solid")
     visualization.put_subgraph(assignment_graph.subgraph_b, node_color=(0,0.5,1), edge_style="solid")

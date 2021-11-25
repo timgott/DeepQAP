@@ -22,37 +22,16 @@ class GraphAssignmentProblem:
         self.graph_source = graph_source
         self.graph_target = graph_target
         self.size = min(graph_source.number_of_nodes(), graph_target.number_of_nodes())
-        self.assignment = [None] * self.size
-        self.unassigned_variables = list(range(self.size))
-        self.unassigned_targets = list(range(self.size))
 
-    def assign(self, x: int, y: int):
-        self.assignment[x] = y
-        self.unassigned_variables.remove(x)
-        self.unassigned_targets.remove(y)
-
-    def unassign(self, x: int):
-        self.unassigned_targets.append(self.assignment[x])
-        self.assignment[x] = None
-        self.unassigned_variables.append(x)
-
-    def get_unassigned_nodes(self):
-        return self.unassigned_variables
-
-    def get_graph(self):
-        pass
-
-    def is_fully_assigned(self):
-        return not self.unassigned_variables
-
-    def compute_value(self):
+    def compute_value(self, assignment):
         value: int = 0
         for x1, x2, weight in self.graph_source.edges.data("weight"):
-            y1, y2 = self.assignment[x1], self.assignment[x2]
+            y1, y2 = assignment[x1], assignment[x2]
+            assert(y1 in self.graph_target)
+            assert(y2 in self.graph_target)
             if self.graph_target.has_edge(y1, y2):
                 value += weight * self.graph_target.edges[y1, y2]["weight"]
-            else:
-                value = math.inf
+            # edge not in graph => weight 0
 
         return value
 
@@ -91,3 +70,28 @@ class GraphAssignmentProblem:
         ]
 
         return data.join("\n\n")
+
+class AssignmentGraph:
+    def __init__(self, a: nx.Graph, b: nx.Graph, assignment) -> None:
+        # Rename nodes in b for joining
+        offset = len(a)
+        self.mapping = dict(zip(b, range(offset, len(b) + offset)))
+        b_relabeled = nx.relabel_nodes(b, self.mapping)
+
+        # Create joined graph
+        self.graph = nx.union(a, b_relabeled)
+
+        # Add assignment edges
+        self.assignment_edges = [(x, self.mapping[y]) for x,y in enumerate(assignment)]
+        self.graph.add_edges_from(self.assignment_edges)
+
+        self.subgraph_a = self.graph.subgraph(a.nodes)
+        self.subgraph_b = self.graph.subgraph(b_relabeled.nodes)
+
+        nx.set_node_attributes(self.subgraph_a, 1.0, "side")
+        nx.set_node_attributes(self.subgraph_b, -1.0, "side")
+
+    def add_assignment(self, x, y):
+        mapped_y = self.mapping[y]
+        self.graph.add_edge(x, mapped_y, weight=1.0)
+        self.assignment_edges.append((x,mapped_y))
