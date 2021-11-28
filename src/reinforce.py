@@ -37,15 +37,16 @@ class ReinforceAgent:
         self.network = Sequential('x, edge_index, edge_attr', [
             (GCNConv(1, hidden_channels), 'x, edge_index, edge_attr -> x'),
             ReLU(),
-            (GCNConv(hidden_channels, out_channels), 'x, edge_index, edge_attr -> x'),
-            ReLU()
+            (GCNConv(hidden_channels, hidden_channels), 'x, edge_index, edge_attr -> x'),
+            ReLU(),
+            Linear(hidden_channels, out_channels)
         ])
         self.optimizer = torch.optim.Adam(self.network.parameters(), lr=learning_rate)
 
-    def compute_policy(self, data, unassigned_source_nodes, unassigned_target_nodes):
+    def compute_policy(self, data, source_nodes, target_nodes):
         embeddings = self.network(data.x, data.edge_index, data.edge_attr)
-        source_embeddings = embeddings[unassigned_source_nodes]
-        target_embeddings = embeddings[unassigned_target_nodes]
+        source_embeddings = embeddings[source_nodes]
+        target_embeddings = embeddings[target_nodes]
         probabilities = torch.matmul(source_embeddings, target_embeddings.T)
         policy = Categorical2D(logits=probabilities)
         return policy
@@ -66,7 +67,9 @@ class ReinforceAgent:
         for i in range(qap.size):
             data = from_networkx(nx_graph.graph, ["side"], ["weight"])
 
-            policy = self.compute_policy(data, unassigned_a, unassigned_b)
+            source_nodes = [nx_graph.map_source_node(a) for a in unassigned_a]
+            target_nodes = [nx_graph.map_target_node(b) for b in unassigned_b]
+            policy = self.compute_policy(data, source_nodes, target_nodes)
             pair = policy.sample()
 
             # Store for learning (recomputing policy might be expensive)

@@ -83,7 +83,7 @@ class AssignmentGraph:
 
         # Add assignment edges
         self.assignment_edges = [(x, self.mapping[y]) for x,y in enumerate(assignment)]
-        self.graph.add_edges_from(self.assignment_edges)
+        self.graph.add_edges_from(self.assignment_edges, weight=1.0)
 
         self.subgraph_a = self.graph.subgraph(a.nodes)
         self.subgraph_b = self.graph.subgraph(b_relabeled.nodes)
@@ -92,6 +92,12 @@ class AssignmentGraph:
         nx.set_node_attributes(self.subgraph_b, -1.0, "side")
 
     def add_assignment(self, x, y):
-        mapped_y = self.mapping[y]
+        mapped_y = self.map_target_node(y)
         self.graph.add_edge(x, mapped_y, weight=1.0)
         self.assignment_edges.append((x,mapped_y))
+
+    def map_target_node(self, y):
+        return self.mapping[y]
+
+    def map_source_node(self, x):
+        return x
