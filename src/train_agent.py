@@ -2,11 +2,10 @@ from qap import GraphAssignmentProblem
 from trainer import StatsCollector, Trainer
 from pathlib import Path
 import testgraphs
-
-def problem_generator():
-    a = testgraphs.create_random_graph(8, 1.0)
-    b = testgraphs.create_random_graph(8, 1.0)
-    return GraphAssignmentProblem(a, b)
+import taskgenerators
+import logging
+import sys
+from reinforce import ReinforceAgent
 
 def create_experiment_folder(path: Path):
     basename = path.name
@@ -21,9 +20,29 @@ def create_experiment_folder(path: Path):
     
     return path
 
-def train_agent(agent, experiment_path, training_steps, checkpoint_every):
+def train_agent(agent, problem_generator, experiment_path, training_steps, checkpoint_every):
     experiment_path = create_experiment_folder(Path(experiment_path))
+    logging.basicConfig(filename=experiment_path / "run.log")
 
     stats_collector = StatsCollector(experiment_path)
     trainer = Trainer(agent, problem_generator, stats_collector)
     trainer.train(training_steps, checkpoint_every)
+
+def main():
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} experiment_path problem_generator")
+        return 1
+
+    agent = ReinforceAgent()
+    experiment_path = sys.argv[1]
+    problem_generator = taskgenerators.generators[sys.argv[2]]
+    train_agent(agent, 
+        problem_generator=problem_generator,
+        experiment_path=experiment_path,
+        training_steps=100000,
+        checkpoint_every=5000
+    )
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(main())

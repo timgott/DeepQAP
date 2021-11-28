@@ -1,5 +1,4 @@
 import math
-import random
 from qap import GraphAssignmentProblem
 
 def solve_qap_backtracking(qap: GraphAssignmentProblem):
@@ -35,7 +34,5 @@ def solve_qap_backtracking(qap: GraphAssignmentProblem):
     recurse(0)
     return best_value, best_assignment
 
-def random_assignment(qap: GraphAssignmentProblem):
-    unassigned_targets = list(qap.graph_target.nodes)
-    return random.shuffle(unassigned_targets)
+
     
