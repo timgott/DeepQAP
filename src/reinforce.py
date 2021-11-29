@@ -100,6 +100,29 @@ class ReinforceAgent:
 
         return value, assignment
     
+    def solve(self, qap: GraphAssignmentProblem):
+        nx_graph = AssignmentGraph(qap.graph_source, qap.graph_target, [])
+
+        unassigned_a = list(qap.graph_source.nodes)
+        unassigned_b = list(qap.graph_target.nodes)
+        assignment = [None] * qap.size
+
+        for i in range(qap.size):
+            data = from_networkx(nx_graph.graph, ["side"], ["weight"])
+
+            source_nodes = [nx_graph.map_source_node(a) for a in unassigned_a]
+            target_nodes = [nx_graph.map_target_node(b) for b in unassigned_b]
+            policy = self.compute_policy(data, source_nodes, target_nodes)
+            pair = policy.sample()
+
+            x = unassigned_a.pop(pair[0])
+            y = unassigned_b.pop(pair[1])
+            assignment[x] = y
+
+            nx_graph.add_assignment(x, y)
+
+        return assignment
+
     def get_episode_stats(self):
         return self.episode_stats
 

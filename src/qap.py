@@ -51,8 +51,8 @@ class GraphAssignmentProblem:
                 return array
 
         float_data = [float(x) for x in data[1:]]
-        graph_a = nx.from_numpy_array(parse_matrix(float_data, 0, size))
-        graph_b = nx.from_numpy_array(parse_matrix(float_data, size*size, size))
+        graph_a = nx.from_numpy_array(parse_matrix(float_data, 0, size), create_using=nx.DiGraph)
+        graph_b = nx.from_numpy_array(parse_matrix(float_data, size*size, size), create_using=nx.DiGraph)
 
         assert graph_a.number_of_nodes() == size
         assert graph_b.number_of_nodes() == size
