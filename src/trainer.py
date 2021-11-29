@@ -22,13 +22,15 @@ class StatsCollector:
         else:
             self.data[key].append(value)
 
-    def checkpoint(self, name, data):
-        torch.save(data, )
+    def save(self):
+        for key in self.data:
+            with open(self.path / f"{key}.txt", mode="a") as f:
+                f.write("\n".join(str(x) for x in self.data[key]))
+                self.data[key] = []
 
     def finish(self):
-        for key in self.data:
-            with open(self.path / f"{key}.txt", mode="x") as f:
-                f.write("\n".join(str(x) for x in self.data[key]))
+        self.save()
+        
 
 class Trainer:
     def __init__(self, agent, problem_generator: Callable[[], GraphAssignmentProblem], stats_collector):
@@ -57,6 +59,7 @@ class Trainer:
             # Backup agent after some time
             if checkpoint_every is not None and i % checkpoint_every == 0:
                 self.save_checkpoint(str(i))
+                self.stats_collector.save()
 
             if (i+1) % 100 == 0:
                 print(f"Step {i+1}/{steps} finished")
