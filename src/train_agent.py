@@ -39,8 +39,8 @@ def main():
     train_agent(agent, 
         problem_generator=problem_generator,
         experiment_path=experiment_path,
-        training_steps=100000,
-        checkpoint_every=5000
+        training_steps=10000,
+        checkpoint_every=1000
     )
     return 0
 
