@@ -2,16 +2,10 @@ import networkx
 from networkx.drawing.nx_pylab import draw
 import numpy as np
 import torch
-from torch.nn import Linear, ReLU
-from torch.nn.modules.container import ModuleList
-from torch_geometric.utils import from_networkx
-from qap import GraphAssignmentProblem, AssignmentGraph
-from visualisation import draw_assignment_graph
-import matplotlib.pyplot as plt
-from nn import NodeTransformer, cartesian_product_matrix, concat_bidirectional, aggregate_incoming_edges, dense_edge_features_to_sparse
-import torch_geometric
-from torch_geometric.nn import GATv2Conv
+from torch.nn import ELU, ModuleList
+from nn import FullyConnected, NodeTransformer, cartesian_product_matrix, concat_bidirectional, aggregate_incoming_edges, dense_edge_features_to_sparse
 from torch_geometric.data import Data as GraphData
+from qap import GraphAssignmentProblem
 
 class Categorical2D:
     def __init__(self, logits, shape=None) -> None:
@@ -37,9 +31,9 @@ class Categorical2D:
 
 class ReinforceAgent:
     def __init__(self, learning_rate=1e-3):
-        hidden_channels = 32
-        edge_embedding_size = 16
-        node_embedding_size = 16
+        hidden_channels = 64
+        edge_embedding_size = 32
+        node_embedding_size = 32
         
         self.hidden_channels = hidden_channels
         self.edge_embedding_size = edge_embedding_size
@@ -47,43 +41,33 @@ class ReinforceAgent:
         
         # Allow to generate histogram-like embeddings, that are more meaningful
         # than scalars when aggregated
-        self.edge_embedding_net = torch.nn.Sequential(
-            Linear(2, hidden_channels),
-            ReLU(),
-            Linear(hidden_channels, node_embedding_size),
-            ReLU(),
+        self.edge_embedding_net = FullyConnected(
+            2, hidden_channels, edge_embedding_size,
+            depth=4, activation=ELU
         )
 
         # Initial summed edge embedding -> node embedding network
-        self.initial_node_embedding_net = torch.nn.Sequential(
-            Linear(edge_embedding_size, hidden_channels),
-            ReLU(),
-            Linear(hidden_channels, node_embedding_size),
-            ReLU(),
+        self.initial_node_embedding_net = FullyConnected(
+            edge_embedding_size, hidden_channels, node_embedding_size,
+            depth=3, activation=ELU
         )
 
         # Message passing node embedding net
         self.messaging_net = NodeTransformer(node_embedding_size, hidden_channels, edge_embedding_size)
 
         # Network that computes linked embeddings of assigned nodes
-        self.link_freeze_net = torch.nn.Sequential(
-            # input: concatenated node embeddings
-            Linear(node_embedding_size * 2, hidden_channels),
-            ReLU(),
-            Linear(hidden_channels, hidden_channels),
-            ReLU(),
-            Linear(hidden_channels, node_embedding_size) # Linear layer at the end is different from other nodes
-            # output: node embedding
+        # input: concatenated node embeddings
+        self.link_freeze_net = FullyConnected(
+            edge_embedding_size * 2, hidden_channels, node_embedding_size,
+            depth=3, activation=ELU
         )
+        # output: node embedding
 
         # Network that computes logit probability that two nodes should be linked
         # asymmetric!
-        self.link_probability_net = torch.nn.Sequential(
-            Linear(node_embedding_size * 2, hidden_channels),
-            ReLU(),
-            Linear(hidden_channels, hidden_channels),
-            ReLU(),
-            Linear(hidden_channels, 1)
+        self.link_probability_net = FullyConnected(
+            node_embedding_size * 2, hidden_channels, 1,
+            depth=3, activation=ELU
         )
 
         # List of all networks the agent uses for storing

@@ -1,5 +1,5 @@
 import torch
-from torch.nn.modules.container import ModuleList
+from torch.nn.modules.container import ModuleList, Sequential
 import torch_geometric
 from torch_geometric.nn import TransformerConv, JumpingKnowledge
 import torch.nn.functional as F
@@ -57,11 +57,24 @@ class NodeTransformer(torch.nn.Module):
         intermediates = []
         for network in self.layers:
             x = network(x, edge_index=edge_index, edge_attr=edge_attr)
-            x = F.relu(x)
+            x = F.elu(x)
             intermediates.append(x)
         
         # concatenate layer output for every node
         skip_xs = torch.cat(intermediates, dim=-1)
         x = self.skip_linear(skip_xs)
-        x = F.relu(x)
+        x = F.elu(x)
         return x
+
+def FullyConnected(input_channels, hidden_channels, output_channels, depth, activation):
+    return FullyConnectedShaped(
+        [input_channels] + [hidden_channels] * depth + [output_channels],
+        activation
+    )
+
+def FullyConnectedShaped(shape, activation):
+    layers = Sequential()
+    for i, (inputs, outputs) in enumerate(zip(shape, shape[1:])):
+        layers.add_module(f"linear[{i}]({inputs}->{outputs})", torch.nn.Linear(inputs, outputs))
+        layers.add_module(f"activation[{i}]", activation())
+    return layers
