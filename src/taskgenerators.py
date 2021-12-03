@@ -17,3 +17,8 @@ def small_random_graphs():
 def qaplib_bur26a():
     with open("qapdata/bur26a.dat") as f:
         return GraphAssignmentProblem.from_qaplib_string(f.read())
+
+@problem_generator
+def small_fixed():
+    with open("qapdata/testgraph.dat") as f:
+        return GraphAssignmentProblem.from_qaplib_string(f.read())

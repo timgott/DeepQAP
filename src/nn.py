@@ -15,17 +15,32 @@ def concat_bidirectional(dense_edge_features: torch.Tensor) -> torch.Tensor:
     transposed = dense_edge_features.transpose(0, 1)
     return torch.cat((dense_edge_features, transposed), dim=2)
 
-def aggregate_incoming_edges(dense_edge_features: torch.Tensor):
-    return torch.mean(dense_edge_features, dim=0)
+def sum_incoming_edges(dense_edge_features: torch.Tensor):
+    return torch.sum(dense_edge_features, dim=0)
 
 def aggregate_outgoing_edges(dense_edge_features: torch.Tensor):
-    return torch.mean(dense_edge_features, dim=1)
+    return torch.sum(dense_edge_features, dim=1)
 
 def dense_edge_features_to_sparse(connectivity_matrix, feature_tensor):
     indices = connectivity_matrix.nonzero(as_tuple=True)
     edge_features = feature_tensor[indices]
     indices_tensor = torch.stack(indices)
     return indices_tensor, edge_features
+
+# aka one-hot encoding
+def edge_histogram_embeddings(connectivity, bins):
+    lower = torch.min(connectivity)
+    upper = torch.max(connectivity)
+    step = (upper - lower)/bins
+    range = torch.arange(lower, upper - step/2, step=step).reshape(1,1,-1)
+    connectivity3d = connectivity.unsqueeze(2)
+    return torch.where((connectivity3d >= range) & (connectivity3d < range + step), 1.0, 0.0)
+    
+def bidirectional_edge_histogram_embeddings(connectivity):
+    incoming = edge_histogram_embeddings(connectivity)
+    outgoing = edge_histogram_embeddings(connectivity.T)
+    return torch.cat(incoming, outgoing, dim=1)
+
 
 # Create matrix where entry ij is cat(a_i,b_j)
 def cartesian_product_matrix(a, b):

@@ -23,6 +23,8 @@ def create_experiment_folder(path: Path):
 
 def train_agent(agent, problem_generator, experiment_path, training_steps, checkpoint_every):
     experiment_path = create_experiment_folder(Path(experiment_path))
+    print("Output folder: f{experiment_path}")
+
     logging.basicConfig(filename=experiment_path / "run.log")
 
     stats_collector = StatsCollector(experiment_path)
@@ -48,8 +50,8 @@ def main():
     train_agent(agent, 
         problem_generator=problem_generator,
         experiment_path=experiment_path,
-        training_steps=10000,
-        checkpoint_every=1000
+        training_steps=1000,
+        checkpoint_every=100
     )
     return 0
 
