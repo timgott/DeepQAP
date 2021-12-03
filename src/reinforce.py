@@ -54,8 +54,9 @@ class ReinforceAgent:
         self.initial_node_embedding_net = torch.nn.Sequential(
             Linear(edge_embedding_size, hidden_channels),
             ReLU(),
-            Linear(hidden_channels, node_embedding_size),
-            ReLU()
+            Linear(hidden_channels, hidden_channels),
+            ReLU(),
+            Linear(hidden_channels, node_embedding_size)
         )
 
         # Message passing node embedding net
@@ -72,17 +73,12 @@ class ReinforceAgent:
             # output: node embedding
         )
 
-        self.link_predictor = torch.nn.Bilinear(
-            node_embedding_size, node_embedding_size, 1,
-            bias=False # Output will be put into softmax which is shift invariant
-        )
-
         # List of all networks the agent uses for storing
         self.networks = ModuleList([
             self.edge_embedding_net,
             self.initial_node_embedding_net,
             self.messaging_net,
-            self.link_predictor,
+            #self.link_predictor, # unused
             self.link_freeze_net,
         ])
 
@@ -106,6 +102,9 @@ class ReinforceAgent:
         data = GraphData(x=base_embeddings, edge_index=edge_index, edge_attr=edge_attr)
         return data
 
+    def compute_link_probabilities(self, embeddings_a, embeddings_b):
+        return torch.matmul(embeddings_a, embeddings_b.T)
+
     def solve_and_learn(self, qap: GraphAssignmentProblem):
         unassigned_a = list(qap.graph_source.nodes)
         unassigned_b = list(qap.graph_target.nodes)
@@ -123,7 +122,7 @@ class ReinforceAgent:
             embeddings_a = self.messaging_net(data_a.x, data_a.edge_index, data_a.edge_attr)
             embeddings_b = self.messaging_net(data_b.x, data_b.edge_index, data_b.edge_attr)
 
-            probabilities = self.link_predictor(embeddings_a[unassigned_a], embeddings_b[unassigned_b])
+            probabilities = self.compute_link_probabilities(embeddings_a[unassigned_a], embeddings_b[unassigned_b])
             policy = Categorical2D(logits=probabilities)
             pair = policy.sample()
 

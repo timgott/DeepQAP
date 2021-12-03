@@ -36,7 +36,8 @@ class NodeTransformer(torch.nn.Module):
             TransformerConv(hidden_channels, hidden_channels, edge_dim=edge_embedding_size),
         ])
         
-        self.skip_linear = torch.nn.Linear(len(self.layers) * hidden_channels, node_embedding_size)
+        self.skip_linear = torch.nn.Linear(len(self.layers) * hidden_channels, hidden_channels)
+        self.out_linear = torch.nn.Linear(hidden_channels, node_embedding_size)
 
     def forward(self, x, edge_index, edge_attr):
         intermediates = []
@@ -49,5 +50,5 @@ class NodeTransformer(torch.nn.Module):
         skip_xs = torch.cat(intermediates, dim=-1)
         x = self.skip_linear(skip_xs)
         x = F.relu(x)
-
+        x = self.out_linear(x)
         return x
