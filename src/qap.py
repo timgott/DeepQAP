@@ -73,7 +73,7 @@ class GraphAssignmentProblem:
             matrix_to_string(nx.to_numpy_array(self.graph_target))
         ]
 
-        return data.join("\n\n")
+        return "\n\n".join(data)
 
 class AssignmentGraph:
     def __init__(self, a: nx.Graph, b: nx.Graph, assignment) -> None:

@@ -42,7 +42,7 @@ class SubgraphVisualisation:
             self.graph,
             edgelist=self.edgelist,
             nodelist=self.nodelist,
-            style=self.edge_styles,
+            #style=self.edge_styles, #fails in jupyter
             node_color=self.node_colors,
             width=self.edge_widths,
             edge_color=self.edge_colors,
