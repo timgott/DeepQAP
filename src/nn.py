@@ -27,6 +27,21 @@ def dense_edge_features_to_sparse(connectivity_matrix, feature_tensor):
     indices_tensor = torch.stack(indices)
     return indices_tensor, edge_features
 
+# Create matrix where entry ij is cat(a_i,b_j)
+def cartesian_product_matrix(a, b):
+    assert(a.shape == b.shape)
+    
+    n = a.shape[0]
+
+    # Repeat a along dimension 1
+    a_rows = a.unsqueeze(1).expand(-1, n, -1)
+
+    # Repeat b along dimension 0
+    b_columns = b.unsqueeze(0).expand(n, -1, -1)
+
+    return torch.cat((a_rows, b_columns), dim=2)
+
+
 class NodeTransformer(torch.nn.Module):
     def __init__(self, node_embedding_size, hidden_channels, edge_embedding_size):
         super().__init__()
@@ -36,8 +51,7 @@ class NodeTransformer(torch.nn.Module):
             TransformerConv(hidden_channels, hidden_channels, edge_dim=edge_embedding_size),
         ])
         
-        self.skip_linear = torch.nn.Linear(len(self.layers) * hidden_channels, hidden_channels)
-        self.out_linear = torch.nn.Linear(hidden_channels, node_embedding_size)
+        self.skip_linear = torch.nn.Linear(len(self.layers) * hidden_channels, node_embedding_size)
 
     def forward(self, x, edge_index, edge_attr):
         intermediates = []
@@ -50,5 +64,4 @@ class NodeTransformer(torch.nn.Module):
         skip_xs = torch.cat(intermediates, dim=-1)
         x = self.skip_linear(skip_xs)
         x = F.relu(x)
-        x = self.out_linear(x)
         return x

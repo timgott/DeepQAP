@@ -8,15 +8,15 @@ from torch_geometric.utils import from_networkx
 from qap import GraphAssignmentProblem, AssignmentGraph
 from visualisation import draw_assignment_graph
 import matplotlib.pyplot as plt
-from nn import NodeTransformer, concat_bidirectional, aggregate_incoming_edges, dense_edge_features_to_sparse
+from nn import NodeTransformer, cartesian_product_matrix, concat_bidirectional, aggregate_incoming_edges, dense_edge_features_to_sparse
 import torch_geometric
 from torch_geometric.nn import GATv2Conv
 from torch_geometric.data import Data as GraphData
 
 class Categorical2D:
-    def __init__(self, logits) -> None:
+    def __init__(self, logits, shape=None) -> None:
         flat_logits = logits.reshape((-1,))
-        self.shape = logits.shape
+        self.shape = shape or logits.shape
         self.distribution = torch.distributions.Categorical(logits=flat_logits)
 
     def unravel(self, vector):
@@ -40,7 +40,11 @@ class ReinforceAgent:
         hidden_channels = 32
         edge_embedding_size = 16
         node_embedding_size = 16
-
+        
+        self.hidden_channels = hidden_channels
+        self.edge_embedding_size = edge_embedding_size
+        self.node_embedding_size = node_embedding_size
+        
         # Allow to generate histogram-like embeddings, that are more meaningful
         # than scalars when aggregated
         self.edge_embedding_net = torch.nn.Sequential(
@@ -54,9 +58,8 @@ class ReinforceAgent:
         self.initial_node_embedding_net = torch.nn.Sequential(
             Linear(edge_embedding_size, hidden_channels),
             ReLU(),
-            Linear(hidden_channels, hidden_channels),
+            Linear(hidden_channels, node_embedding_size),
             ReLU(),
-            Linear(hidden_channels, node_embedding_size)
         )
 
         # Message passing node embedding net
@@ -73,12 +76,22 @@ class ReinforceAgent:
             # output: node embedding
         )
 
+        # Network that computes logit probability that two nodes should be linked
+        # asymmetric!
+        self.link_probability_net = torch.nn.Sequential(
+            Linear(node_embedding_size * 2, hidden_channels),
+            ReLU(),
+            Linear(hidden_channels, hidden_channels),
+            ReLU(),
+            Linear(hidden_channels, 1)
+        )
+
         # List of all networks the agent uses for storing
         self.networks = ModuleList([
             self.edge_embedding_net,
             self.initial_node_embedding_net,
             self.messaging_net,
-            #self.link_predictor, # unused
+            self.link_probability_net,
             self.link_freeze_net,
         ])
 
@@ -103,7 +116,14 @@ class ReinforceAgent:
         return data
 
     def compute_link_probabilities(self, embeddings_a, embeddings_b):
-        return torch.matmul(embeddings_a, embeddings_b.T)
+        n = embeddings_a.shape[0]
+
+        concat_embedding_matrix = cartesian_product_matrix(embeddings_a, embeddings_b)
+
+        # Ensure sizes
+        assert concat_embedding_matrix.shape == (n,n,self.node_embedding_size*2), f"{concat_embedding_matrix.shape} vs {n},{n},{self.node_embedding_size*2}"
+
+        return self.link_probability_net(concat_embedding_matrix)
 
     def solve_and_learn(self, qap: GraphAssignmentProblem):
         unassigned_a = list(qap.graph_source.nodes)
