@@ -1,12 +1,17 @@
+import networkx
 from networkx.drawing.nx_pylab import draw
 import numpy as np
 import torch
 from torch.nn import Linear, ReLU
-from torch_geometric.nn import Sequential, GCNConv
+from torch.nn.modules.container import ModuleList
 from torch_geometric.utils import from_networkx
 from qap import GraphAssignmentProblem, AssignmentGraph
 from visualisation import draw_assignment_graph
 import matplotlib.pyplot as plt
+from nn import NodeTransformer, concat_bidirectional, aggregate_incoming_edges, dense_edge_features_to_sparse
+import torch_geometric
+from torch_geometric.nn import GATv2Conv
+from torch_geometric.data import Data as GraphData
 
 class Categorical2D:
     def __init__(self, logits) -> None:
@@ -32,55 +37,114 @@ class Categorical2D:
 
 class ReinforceAgent:
     def __init__(self, learning_rate=1e-3):
-        hidden_channels = 16
-        out_channels = 8
-        self.network = Sequential('x, edge_index, edge_attr', [
-            (GCNConv(1, hidden_channels), 'x, edge_index, edge_attr -> x'),
-            ReLU(),
-            (GCNConv(hidden_channels, hidden_channels), 'x, edge_index, edge_attr -> x'),
-            ReLU(),
-            Linear(hidden_channels, out_channels)
-        ])
-        self.optimizer = torch.optim.Adam(self.network.parameters(), lr=learning_rate)
+        hidden_channels = 32
+        edge_embedding_size = 16
+        node_embedding_size = 16
 
-    def compute_policy(self, data, source_nodes, target_nodes):
-        embeddings = self.network(data.x, data.edge_index, data.edge_attr)
-        source_embeddings = embeddings[source_nodes]
-        target_embeddings = embeddings[target_nodes]
-        probabilities = torch.matmul(source_embeddings, target_embeddings.T)
-        policy = Categorical2D(logits=probabilities)
-        return policy
+        # Allow to generate histogram-like embeddings, that are more meaningful
+        # than scalars when aggregated
+        self.edge_embedding_net = torch.nn.Sequential(
+            Linear(2, hidden_channels),
+            ReLU(),
+            Linear(hidden_channels, node_embedding_size),
+            ReLU(),
+        )
+
+        # Initial summed edge embedding -> node embedding network
+        self.initial_node_embedding_net = torch.nn.Sequential(
+            Linear(edge_embedding_size, hidden_channels),
+            ReLU(),
+            Linear(hidden_channels, node_embedding_size),
+            ReLU()
+        )
+
+        # Message passing node embedding net
+        self.messaging_net = NodeTransformer(node_embedding_size, hidden_channels, edge_embedding_size)
+
+        # Network that computes linked embeddings of assigned nodes
+        self.link_freeze_net = torch.nn.Sequential(
+            # input: concatenated node embeddings
+            Linear(node_embedding_size * 2, hidden_channels),
+            ReLU(),
+            Linear(hidden_channels, hidden_channels),
+            ReLU(),
+            Linear(hidden_channels, node_embedding_size) # Linear layer at the end is different from other nodes
+            # output: node embedding
+        )
+
+        self.link_predictor = torch.nn.Bilinear(
+            node_embedding_size, node_embedding_size, 1,
+            bias=False # Output will be put into softmax which is shift invariant
+        )
+
+        # List of all networks the agent uses for storing
+        self.networks = ModuleList([
+            self.edge_embedding_net,
+            self.initial_node_embedding_net,
+            self.messaging_net,
+            self.link_predictor,
+            self.link_freeze_net,
+        ])
+
+        self.optimizer = torch.optim.Adam(self.networks.parameters(), lr=learning_rate)
 
     def compute_loss(self, value, policies, actions):
         return value * sum(p.log_prob(actions[i]) for i, p in enumerate(policies))
 
-    def solve_and_learn(self, qap: GraphAssignmentProblem):
-        nx_graph = AssignmentGraph(qap.graph_source, qap.graph_target, [])
+    def transform_initial_graph(self, nx_graph):
+        # networkx graph to connectivity matrix
+        connectivity_matrix = torch.tensor(networkx.linalg.adjacency_matrix(nx_graph).todense()).float()
+        # mirror edge weights to create swap-symmetrical tuples
+        bidirectional_edge_weights = concat_bidirectional(connectivity_matrix.unsqueeze(2))
+        # compute edge embedding vectors from weight values
+        edge_embeddings = self.edge_embedding_net(bidirectional_edge_weights)
+        # aggregate edges and compute initial node embeddings
+        base_embeddings = self.initial_node_embedding_net(aggregate_incoming_edges(edge_embeddings))
+        # matrix format to adjacency and attribute list
+        edge_index, edge_attr = dense_edge_features_to_sparse(connectivity_matrix, edge_embeddings)
+        # Create data object required for torch geometric
+        data = GraphData(x=base_embeddings, edge_index=edge_index, edge_attr=edge_attr)
+        return data
 
+    def solve_and_learn(self, qap: GraphAssignmentProblem):
         unassigned_a = list(qap.graph_source.nodes)
         unassigned_b = list(qap.graph_target.nodes)
-        assignment = [None] * qap.size
+        assignment = np.empty(qap.size)
 
         policies = []
         actions = []
 
-        for i in range(qap.size):
-            data = from_networkx(nx_graph.graph, ["side"], ["weight"])
+        # Initial node and edge embeddings
+        data_a = self.transform_initial_graph(qap.graph_source)
+        data_b = self.transform_initial_graph(qap.graph_target)
 
-            source_nodes = [nx_graph.map_source_node(a) for a in unassigned_a]
-            target_nodes = [nx_graph.map_target_node(b) for b in unassigned_b]
-            policy = self.compute_policy(data, source_nodes, target_nodes)
+        for _ in range(qap.size):
+            # Message passing step
+            embeddings_a = self.messaging_net(data_a.x, data_a.edge_index, data_a.edge_attr)
+            embeddings_b = self.messaging_net(data_b.x, data_b.edge_index, data_b.edge_attr)
+
+            probabilities = self.link_predictor(embeddings_a[unassigned_a], embeddings_b[unassigned_b])
+            policy = Categorical2D(logits=probabilities)
             pair = policy.sample()
+
+            # pair contains indices of unassigned_a, unassigned_b
+            a = unassigned_a.pop(pair[0])
+            b = unassigned_b.pop(pair[1])
+            assignment[a] = b
+
+            # Compute new embedding for assigned nodes
+            frozen_embedding_a = self.link_freeze_net(torch.cat((embeddings_a[a], embeddings_b[b])))
+            frozen_embedding_b = self.link_freeze_net(torch.cat((embeddings_b[b], embeddings_a[a])))
+
+            # Overwrite original embedding
+            data_a.x = data_a.x.clone() # Clone for autograd
+            data_b.x = data_b.x.clone() # Clone for autograd
+            data_a.x[a] = frozen_embedding_a
+            data_b.x[b] = frozen_embedding_b
 
             # Store for learning (recomputing policy might be expensive)
             policies.append(policy)
             actions.append(pair)
-
-            x = unassigned_a.pop(pair[0])
-            y = unassigned_b.pop(pair[1])
-            assignment[x] = y
-
-            nx_graph.add_assignment(x, y)
 
         value = qap.compute_value(assignment)
 
@@ -99,42 +163,19 @@ class ReinforceAgent:
             }
 
         return value, assignment
-    
-    def solve(self, qap: GraphAssignmentProblem):
-        nx_graph = AssignmentGraph(qap.graph_source, qap.graph_target, [])
-
-        unassigned_a = list(qap.graph_source.nodes)
-        unassigned_b = list(qap.graph_target.nodes)
-        assignment = [None] * qap.size
-
-        for i in range(qap.size):
-            data = from_networkx(nx_graph.graph, ["side"], ["weight"])
-
-            source_nodes = [nx_graph.map_source_node(a) for a in unassigned_a]
-            target_nodes = [nx_graph.map_target_node(b) for b in unassigned_b]
-            policy = self.compute_policy(data, source_nodes, target_nodes)
-            pair = policy.sample()
-
-            x = unassigned_a.pop(pair[0])
-            y = unassigned_b.pop(pair[1])
-            assignment[x] = y
-
-            nx_graph.add_assignment(x, y)
-
-        return assignment
 
     def get_episode_stats(self):
         return self.episode_stats
 
     def save_checkpoint(self, path):
         torch.save({
-            'policy_state_dict': self.network.state_dict(),
+            'policy_state_dict': self.networks.state_dict(),
             'policy_optimizer_state_dict': self.optimizer.state_dict(),
         }, path)
 
     def load_checkpoint(self, path):
         checkpoint = torch.load(path)
-        self.network.load_state_dict(checkpoint['policy_state_dict'])
+        self.networks.load_state_dict(checkpoint['policy_state_dict'])
         self.optimizer.load_state_dict(checkpoint['policy_optimizer_state_dict'])
 
 

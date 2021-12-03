@@ -1,11 +1,12 @@
-from qap import GraphAssignmentProblem
 from trainer import StatsCollector, Trainer
 from pathlib import Path
-import testgraphs
 import taskgenerators
 import logging
 import sys
 from reinforce import ReinforceAgent
+import numpy as np
+import torch
+import random
 
 def create_experiment_folder(path: Path):
     basename = path.name
@@ -32,6 +33,14 @@ def main():
     if len(sys.argv) != 3:
         print(f"Usage: {sys.argv[0]} experiment_path problem_generator")
         return 1
+
+    # Fix random seed
+    seed = 0
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
 
     agent = ReinforceAgent()
     experiment_path = sys.argv[1]

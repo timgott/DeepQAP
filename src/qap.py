@@ -46,13 +46,17 @@ class GraphAssignmentProblem:
             # format and optionally normalize
             array = np.array(data[offset:offset + size*size]).reshape((size, size))
             if normalize:
-                return array / np.max(array)
+                lower = np.min(array)
+                upper = np.max(array)
+                return (array - lower) / (upper - lower)
             else:
                 return array
 
         float_data = [float(x) for x in data[1:]]
-        graph_a = nx.from_numpy_array(parse_matrix(float_data, 0, size), create_using=nx.DiGraph)
-        graph_b = nx.from_numpy_array(parse_matrix(float_data, size*size, size), create_using=nx.DiGraph)
+        connectivity_a = parse_matrix(float_data, 0, size)
+        connectivity_b = parse_matrix(float_data, size*size, size)
+        graph_a = nx.from_numpy_array(connectivity_a, create_using=nx.DiGraph)
+        graph_b = nx.from_numpy_array(connectivity_b, create_using=nx.DiGraph)
 
         assert graph_a.number_of_nodes() == size
         assert graph_b.number_of_nodes() == size

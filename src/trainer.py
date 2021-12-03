@@ -44,26 +44,26 @@ class Trainer:
     def train(self, steps=1, checkpoint_every=None):
         self.stats_collector.start()
 
-        for i in range(steps):
-            # Generate Problem
-            qap = self.problem_generator()
+        try:
+            for i in range(steps):
+                # Generate Problem
+                qap = self.problem_generator()
 
-            # Let agent learn on problem
-            self.agent.solve_and_learn(qap)
+                # Let agent learn on problem
+                self.agent.solve_and_learn(qap)
 
-            # Store statistics
-            stats = self.agent.get_episode_stats()
-            for key, value in stats.items():
-                self.stats_collector.put(key, value)
+                # Store statistics
+                stats = self.agent.get_episode_stats()
+                for key, value in stats.items():
+                    self.stats_collector.put(key, value)
 
-            # Backup agent after some time
-            if checkpoint_every is not None and i % checkpoint_every == 0:
-                self.save_checkpoint(str(i))
-                self.stats_collector.save()
+                # Backup agent after some time
+                if checkpoint_every is not None and i % checkpoint_every == 0:
+                    self.save_checkpoint(str(i))
+                    self.stats_collector.save()
 
-            if (i+1) % 100 == 0:
-                print(f"Step {i+1}/{steps} finished")
-
-        self.save_checkpoint("end")
-
-        self.stats_collector.finish()
+                if (i+1) % 100 == 0:
+                    print(f"Step {i+1}/{steps} finished")
+        finally:
+            self.save_checkpoint("end")
+            self.stats_collector.finish()
