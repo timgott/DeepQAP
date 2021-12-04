@@ -7,6 +7,7 @@ from torch.nn import ELU, ModuleList
 from nn import FullyConnected, NodeTransformer, cartesian_product_matrix, concat_bidirectional, sum_incoming_edges, dense_edge_features_to_sparse, edge_histogram_embeddings
 from torch_geometric.data import Data as GraphData
 from qap import GraphAssignmentProblem
+import utils
 
 class Categorical2D:
     def __init__(self, logits, shape=None) -> None:
@@ -71,13 +72,15 @@ class ReinforceAgent:
             depth=3, activation=ELU
         )
 
+        self.baseline = utils.IncrementalStats()
+
         # List of all networks the agent uses for storing
         self.networks = ModuleList([
             #self.edge_embedding_net,
-            self.initial_node_embedding_net,
+            #self.initial_node_embedding_net,
             #self.messaging_net,
             self.link_probability_net,
-            self.link_freeze_net,
+            #self.link_freeze_net,
         ])
 
         self.optimizer = torch.optim.Adam(self.networks.parameters(), lr=learning_rate)
@@ -165,6 +168,9 @@ class ReinforceAgent:
 
         # Compute assignment value
         value = qap.compute_value(assignment)
+        
+        self.baseline.add(value)
+        value -= self.baseline.mean()
 
         # Optimize
         loss = value * log_probs
@@ -180,8 +186,8 @@ class ReinforceAgent:
         self.episode_stats = {
             "value": value,
             "entropy_average": np.mean(entropies),
-            "episode_entropies": entropies,
-            "gradient_magnitude": gradient_magnitude
+            "episode_entropies": np.array(entropies),
+            "gradient_magnitude": gradient_magnitude.item()
         }
 
         return value, assignment
@@ -193,12 +199,14 @@ class ReinforceAgent:
         torch.save({
             'policy_state_dict': self.networks.state_dict(),
             'policy_optimizer_state_dict': self.optimizer.state_dict(),
+            'baseline_state_dict': self.baseline.state_dict()
         }, path)
 
     def load_checkpoint(self, path):
         checkpoint = torch.load(path)
         self.networks.load_state_dict(checkpoint['policy_state_dict'])
         self.optimizer.load_state_dict(checkpoint['policy_optimizer_state_dict'])
+        self.baseline.load_state_dict(checkpoint['baseline_state_dict'])
 
 
 

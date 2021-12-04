@@ -23,7 +23,7 @@ def create_experiment_folder(path: Path):
 
 def train_agent(agent, problem_generator, experiment_path, training_steps, checkpoint_every):
     experiment_path = create_experiment_folder(Path(experiment_path))
-    print("Output folder: f{experiment_path}")
+    print(f"Output folder: {experiment_path}")
 
     logging.basicConfig(filename=experiment_path / "run.log")
 
