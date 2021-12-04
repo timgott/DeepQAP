@@ -3,7 +3,7 @@ from pathlib import Path
 import taskgenerators
 import logging
 import sys
-from reinforce import ReinforceAgent
+import agent_configs
 import numpy as np
 import torch
 import random
@@ -33,7 +33,7 @@ def train_agent(agent, problem_generator, experiment_path, training_steps, check
 
 def main():
     if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} experiment_path problem_generator")
+        print(f"Usage: {sys.argv[0]} experiment_path agent_type problem_generator")
         return 1
 
     # Fix random seed
@@ -44,8 +44,8 @@ def main():
     np.random.seed(seed)
     random.seed(seed)
 
-    agent = ReinforceAgent()
     experiment_path = sys.argv[1]
+    agent = agent_configs.agents[sys.argv[2]]()
     problem_generator = taskgenerators.generators[sys.argv[2]]
     train_agent(agent, 
         problem_generator=problem_generator,
