@@ -27,8 +27,8 @@ class GraphAssignmentProblem:
         value: int = 0
         for x1, x2, weight in self.graph_source.edges.data("weight"):
             y1, y2 = assignment[x1], assignment[x2]
-            assert(y1 in self.graph_target)
-            assert(y2 in self.graph_target)
+            assert(y1 in self.graph_target), f"{y1} not in graph ({list(self.graph_target)})"
+            assert(y2 in self.graph_target), f"{y2} not in graph ({list(self.graph_target)})"
             if self.graph_target.has_edge(y1, y2):
                 value += weight * self.graph_target.edges[y1, y2]["weight"]
             # edge not in graph => weight 0

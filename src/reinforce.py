@@ -36,7 +36,7 @@ class ReinforceAgent:
     def compute_loss(self, value, policies, actions):
         return value * sum(p.log_prob(actions[i]) for i, p in enumerate(policies))
 
-    def solve_and_learn(self, qap: GraphAssignmentProblem):
+    def solve_and_learn(self, qap: GraphAssignmentProblem, learn=True):
         unassigned_a = list(qap.graph_source.nodes)
         unassigned_b = list(qap.graph_target.nodes)
         assignment = np.empty(qap.size)
@@ -76,28 +76,33 @@ class ReinforceAgent:
         # Compute assignment value
         value = qap.compute_value(assignment)
         
-        self.baseline.add(value)
-        baselined_value = value - self.baseline.mean()
+        if learn:
+            self.baseline.add(value)
+            baselined_value = value - self.baseline.mean()
 
-        # Optimize
-        loss = baselined_value * log_probs
-        self.optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        self.optimizer.step()
+            # Optimize
+            loss = baselined_value * log_probs
+            self.optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            self.optimizer.step()
 
         # Training statistics
         gradient_magnitude = 0
         for param in self.policy_net.parameters():
-            gradient_magnitude += torch.norm(param.grad)
+            if param.grad is not None:
+                gradient_magnitude += torch.norm(param.grad).item()
         
         self.episode_stats = {
             "value": value,
             "entropy_average": np.mean(entropies),
             "episode_entropies": np.array(entropies),
-            "gradient_magnitude": gradient_magnitude.item()
+            "gradient_magnitude": gradient_magnitude
         }
 
         return value, assignment
+
+    def solve(self, qap):
+        return self.solve_and_learn(qap, learn=False)
 
     def get_episode_stats(self):
         return self.episode_stats

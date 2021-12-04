@@ -25,12 +25,12 @@ class StatsCollector:
     def save(self):
         for key in self.data:
             with open(self.path / f"{key}.txt", mode="a") as f:
-                f.write("\n".join(str(x) for x in self.data[key]))
+                f.writelines([f"{x}\n" for x in self.data[key]])
                 self.data[key] = []
 
     def finish(self):
         self.save()
-        
+
 
 class Trainer:
     def __init__(self, agent, problem_generator: Callable[[], GraphAssignmentProblem], stats_collector):
