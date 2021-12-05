@@ -39,7 +39,7 @@ class ReinforceAgent:
     def solve_and_learn(self, qap: GraphAssignmentProblem, learn=True):
         unassigned_a = list(qap.graph_source.nodes)
         unassigned_b = list(qap.graph_target.nodes)
-        assignment = np.empty(qap.size)
+        assignment = np.empty(qap.size, dtype=int)
 
         state = self.policy_net.initial_step(qap)
 
