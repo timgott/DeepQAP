@@ -35,7 +35,7 @@ def print_usage():
         print(f"- {agent}")
     print("Task generators:")
     for task in tasks.keys():
-        print(f"- {agent}")
+        print(f"- {task}")
 
 def main():
     if len(sys.argv) != 4:
@@ -75,7 +75,7 @@ def main():
         problem_generator=problem_generator,
         experiment_path=experiment_path,
         training_steps=10000,
-        checkpoint_every=500
+        checkpoint_every=1000
     )
     return 0
 

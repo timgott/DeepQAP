@@ -10,4 +10,8 @@ def define_agent_config(f):
 
 @define_agent_config
 def reinforce_simple_histogram():
-    return ReinforceAgent(reinforce_nets.link_prediction_only(32,64,3))
+    return ReinforceAgent(reinforce_nets.link_prediction_only_undirected(32,64,3))
+
+@define_agent_config
+def reinforce_simple_node_embeddings():
+    return ReinforceAgent(reinforce_nets.simple_node_embeddings_undirected(32,32,64,3))
