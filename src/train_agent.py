@@ -16,7 +16,7 @@ def create_experiment_folder(path: Path):
             path.mkdir(parents=True, exist_ok=False)
             break
         except FileExistsError:
-            counter += 1
+            counter += 1 # First duplicate gets _2
             path = path.with_name(f"{basename}_{counter}")
     
     return path
@@ -67,6 +67,9 @@ def main():
 
     with open(experiment_path / 'agenttype', 'x') as f:
         f.write(agent_name)
+
+    with open(experiment_path / 'trainingtask', 'x') as f:
+        f.write(task_name)
 
     train_agent(agent, 
         problem_generator=problem_generator,
