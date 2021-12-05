@@ -3,13 +3,12 @@ from qap import GraphAssignmentProblem
 
 def solve_qap_backtracking(qap: GraphAssignmentProblem):
     variables = list(qap.graph_source.nodes)
-    unassigned_targets = list(qap.graph_target.nodes)
     current_assignment = [None] * qap.size
 
     best_assignment = None
     best_value = math.inf
 
-    def recurse(depth):
+    def recurse(depth, unassigned_targets: set):
         nonlocal best_value, best_assignment, current_assignment
 
         # fully assigned?
@@ -23,15 +22,13 @@ def solve_qap_backtracking(qap: GraphAssignmentProblem):
         variable = variables[depth]
         for target in unassigned_targets:
             current_assignment[variable] = target
-            unassigned_targets.remove(target)
-            recurse(depth + 1)
-            unassigned_targets.append(target)
+            recurse(depth + 1, unassigned_targets.difference((target,)))
         
         current_assignment[variable] = None
 
         return
     
-    recurse(0)
+    recurse(0, set(qap.graph_target.nodes))
     return best_value, best_assignment
 
 
