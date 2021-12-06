@@ -15,3 +15,7 @@ def reinforce_simple_histogram():
 @define_agent_config
 def reinforce_simple_node_embeddings():
     return ReinforceAgent(reinforce_nets.simple_node_embeddings_undirected(32,32,64,3))
+
+@define_agent_config
+def reinforce_simple_node_embeddings_normalized():
+    return ReinforceAgent(reinforce_nets.simple_node_embeddings_undirected(32,32,64,3,normalize_embeddings=True))

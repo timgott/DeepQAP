@@ -1,4 +1,4 @@
-from torch.nn import ELU
+from torch.nn import ELU, Sequential, LayerNorm
 from nn import Bidirectional, FullyConnected, NodeTransformer, QAPNet, edge_histogram_embeddings
 
 identity_encoder = lambda x: x
@@ -55,12 +55,19 @@ def link_prediction_only_undirected(embedding_size, hidden_channels, depth):
         link_encoder=identity_encoder
     )
 
-def simple_node_embeddings_undirected(edge_embedding_size, node_embedding_size, hidden_channels, depth):
+def simple_node_embeddings_undirected(edge_embedding_size, node_embedding_size, hidden_channels, depth, normalize_embeddings=False):
     histogram_encoder = lambda C: edge_histogram_embeddings(C, bins=edge_embedding_size)
     node_encoder = FullyConnected(
         edge_embedding_size, hidden_channels, node_embedding_size,
         depth=depth, activation=ELU
     )
+
+    if normalize_embeddings:
+        node_encoder = Sequential(
+            node_encoder,
+            LayerNorm(normalized_shape=(node_embedding_size))
+        )
+    
     link_probability_net = FullyConnected(
         node_embedding_size * 2, hidden_channels, 1,
         depth=depth, activation=ELU
