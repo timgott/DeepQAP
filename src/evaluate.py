@@ -52,16 +52,23 @@ def evaluate(agent, problem_generator):
         print("Optimal:", optimal_value, optimal_assignment)
 
 def main():
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} checkpoint problem_generator")
+    if len(sys.argv) not in (2,3):
+        print(f"Usage: {sys.argv[0]} checkpoint [problem_generator]")
         return 1
 
     checkpoint_path = sys.argv[1]
-    problem_generator_name = sys.argv[2]
     
-    agenttype = (Path(checkpoint_path).parent / "agenttype").read_text().strip()
-    agent = agent_configs.agents[agenttype]()
+    agent_name = (Path(checkpoint_path).parent / "agenttype").read_text().strip()
+    agent = agent_configs.agents[agent_name]()
     agent.load_checkpoint(sys.argv[1])
+    
+    if len(sys.argv) >= 3:
+        problem_generator_name = sys.argv[2]
+    else:
+        problem_generator_name = (Path(checkpoint_path).parent / "trainingtask").read_text().strip()
+    
+    print(f"Evaluating agent '{agent_name}' on task '{problem_generator_name}'")
+    
     problem_generator = taskgenerators.generators[problem_generator_name]
     evaluate(agent, problem_generator)
     return 0
