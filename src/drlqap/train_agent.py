@@ -1,9 +1,9 @@
-from trainer import StatsCollector, Trainer
+from drlqap.trainer import StatsCollector, Trainer
 from pathlib import Path
-from taskgenerators import generators as tasks
+from drlqap.taskgenerators import generators as tasks
 import logging
 import sys
-from agent_configs import agents
+from drlqap.agent_configs import agents
 import numpy as np
 import torch
 import random

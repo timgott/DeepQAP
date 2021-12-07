@@ -1,10 +1,9 @@
 import sys
 
 from networkx.drawing.nx_pylab import draw
-from visualisation import draw_graph_assignment, SubgraphVisualisation
-from qap import GraphAssignmentProblem as QAP
+from drlqap.visualisation import draw_graph_assignment, SubgraphVisualisation
+from drlqap.qap import GraphAssignmentProblem as QAP
 import matplotlib.pyplot as plt
-import networkx
 
 with open(sys.argv[1]) as f:
     qap = QAP.from_qaplib_string(f.read(), normalize=True)

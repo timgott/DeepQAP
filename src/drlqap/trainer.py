@@ -1,7 +1,7 @@
 from typing import Callable
 
 import torch
-from qap import GraphAssignmentProblem
+from drlqap.qap import GraphAssignmentProblem
 import random
 import os
 

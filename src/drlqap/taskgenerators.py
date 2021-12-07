@@ -1,5 +1,5 @@
-import testgraphs
-from qap import GraphAssignmentProblem
+from drlqap import testgraphs
+from drlqap.qap import GraphAssignmentProblem
 
 generators = dict()
 

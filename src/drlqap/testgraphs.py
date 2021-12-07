@@ -2,8 +2,6 @@ from networkx import Graph
 import networkx
 import random
 
-from networkx.readwrite.graph6 import data_to_n
-
 def create_ring(size):
     """
     Creates a ring with weight 1

@@ -1,9 +1,7 @@
-import math
 from typing import List
 import networkx as nx
 import numpy as np
 from networkx import Graph
-from networkx.classes import graph
 
 class GraphAssignmentProblem:
     graph_source: Graph

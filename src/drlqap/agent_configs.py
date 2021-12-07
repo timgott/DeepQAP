@@ -1,5 +1,5 @@
-import reinforce_nets
-from reinforce import ReinforceAgent
+from drlqap import reinforce_nets
+from drlqap.reinforce import ReinforceAgent
 
 agents = dict()
 

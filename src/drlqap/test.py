@@ -1,8 +1,7 @@
-from qap import GraphAssignmentProblem
-from simplesolver import solve_qap_backtracking as solve
-import testgraphs
-from visualisation import draw_qap
-import networkx as nx
+from drlqap.qap import GraphAssignmentProblem
+from drlqap.simplesolver import solve_qap_backtracking as solve
+from drlqap import testgraphs
+from drlqap.visualisation import draw_qap
 
 a = testgraphs.create_random_graph(8, 1.0)
 b = testgraphs.create_random_graph(8, 1.0)

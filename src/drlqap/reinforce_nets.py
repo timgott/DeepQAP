@@ -1,5 +1,5 @@
 from torch.nn import ELU, Sequential, LayerNorm
-from nn import Bidirectional, FullyConnected, NodeTransformer, QAPNet, edge_histogram_embeddings
+from drlqap.nn import Bidirectional, FullyConnected, NodeTransformer, QAPNet, edge_histogram_embeddings
 
 identity_encoder = lambda x: x
 

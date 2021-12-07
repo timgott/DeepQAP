@@ -1,8 +1,8 @@
 import numpy as np
 import torch
-from nn import QAPNet
-from qap import GraphAssignmentProblem
-import utils
+from drlqap.nn import QAPNet
+from drlqap.qap import GraphAssignmentProblem
+from drlqap.utils import IncrementalStats
 
 class Categorical2D:
     def __init__(self, logits, shape=None) -> None:
@@ -29,7 +29,7 @@ class Categorical2D:
 class ReinforceAgent:
     def __init__(self, policy_net: QAPNet, learning_rate=1e-3):
         self.policy_net = policy_net
-        self.baseline = utils.IncrementalStats()
+        self.baseline = IncrementalStats()
 
         self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=learning_rate)
 

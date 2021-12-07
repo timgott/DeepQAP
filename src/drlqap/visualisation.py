@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import networkx as nx
-from networkx.algorithms.shortest_paths import weighted
-from qap import AssignmentGraph, GraphAssignmentProblem
+from drlqap.qap import AssignmentGraph, GraphAssignmentProblem
 
 class SubgraphVisualisation:
     def __init__(self, graph) -> None:

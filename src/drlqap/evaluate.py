@@ -1,12 +1,11 @@
 import numpy as np
 import random
-from qap import GraphAssignmentProblem
-from reinforce import ReinforceAgent
-from simplesolver import solve_qap_backtracking
 from pathlib import Path
 import sys
-import taskgenerators
-import agent_configs
+from drlqap.qap import GraphAssignmentProblem
+from drlqap.simplesolver import solve_qap_backtracking
+from drlqap import taskgenerators
+from drlqap import agent_configs
 
 
 def random_assignment(qap: GraphAssignmentProblem):
