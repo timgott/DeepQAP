@@ -1,5 +1,5 @@
 import math
-from qap import GraphAssignmentProblem
+from drlqap.qap import GraphAssignmentProblem
 
 def solve_qap_backtracking(qap: GraphAssignmentProblem):
     variables = list(qap.graph_source.nodes)

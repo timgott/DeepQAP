@@ -2,6 +2,8 @@ from torch.nn import ELU, Sequential, LayerNorm
 from drlqap.nn import Bidirectional, FullyConnected, NodeTransformer, QAPNet, edge_histogram_embeddings
 
 identity_encoder = lambda x: x
+def identity_link_encoder(embedding_size):
+    return lambda x: x[embedding_size]
 
 def mp_transformer(hidden_channels, edge_embedding_size, node_embedding_size, depth):
     # Edge encoder. Concatenates weights in both direction
@@ -52,7 +54,7 @@ def link_prediction_only_undirected(embedding_size, hidden_channels, depth):
         edge_encoder=histogram_encoder,
         initial_node_encoder=identity_encoder,
         link_probability_net=link_probability_net,
-        link_encoder=identity_encoder
+        link_encoder=identity_link_encoder(embedding_size)
     )
 
 def simple_node_embeddings_undirected(edge_embedding_size, node_embedding_size, hidden_channels, depth, normalize_embeddings=False):
@@ -77,5 +79,5 @@ def simple_node_embeddings_undirected(edge_embedding_size, node_embedding_size, 
         edge_encoder=histogram_encoder,
         initial_node_encoder=node_encoder,
         link_probability_net=link_probability_net,
-        link_encoder=identity_encoder
+        link_encoder=identity_link_encoder(node_embedding_size)
     )

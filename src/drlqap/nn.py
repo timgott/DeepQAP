@@ -170,18 +170,22 @@ class QAPNet(torch.nn.Module):
         embeddings_a = data_a.x
         embeddings_b = data_b.x
 
+        print(embeddings_a.shape)
+
         # Compute new embedding for assigned nodes
         frozen_embedding_a = self.link_encoder(torch.cat((embeddings_a[a], embeddings_b[b])))
         frozen_embedding_b = self.link_encoder(torch.cat((embeddings_b[b], embeddings_a[a])))
 
+        print(frozen_embedding_a.shape)
+
         # Overwrite original embedding
         new_embeddings_a = embeddings_a.clone() # Clone required for autograd
-        new_embeddings_a = embeddings_b.clone()
+        new_embeddings_b = embeddings_b.clone()
         new_embeddings_a[a] = frozen_embedding_a
-        new_embeddings_a[b] = frozen_embedding_b
+        new_embeddings_b[b] = frozen_embedding_b
 
         new_data_a = GraphData(x=new_embeddings_a, edge_index=data_a.edge_index, edge_attr=data_a.edge_attr)
-        new_data_b = GraphData(x=new_embeddings_a, edge_index=data_b.edge_index, edge_attr=data_b.edge_attr)
+        new_data_b = GraphData(x=new_embeddings_b, edge_index=data_b.edge_index, edge_attr=data_b.edge_attr)
 
         return (new_data_a, new_data_b)
 
