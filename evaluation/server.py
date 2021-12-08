@@ -12,10 +12,11 @@ from bokeh.transform import transform
 from bokeh.palettes import Viridis256
 import numpy as np
 import torch
+from torch.distributions.categorical import Categorical
 
 from drlqap.evaltools import load_checkpoints, load_float_txt
 from drlqap.qap import GraphAssignmentProblem
-from drlqap.reinforce import ReinforceAgent
+from drlqap.reinforce import Categorical2D, ReinforceAgent
 
 agent_folders = list(Path("runs").iterdir())
 qap_files = list(Path("qapdata").glob("*.dat"))
@@ -101,7 +102,7 @@ entropy_plot.scatter(x='episode', y='entropy', source=training_results)
 plot_layout = column(value_plot, entropy_plot)
 
 # QAP test runs
-colormap = LinearColorMapper(Viridis256)
+colormap = LinearColorMapper(Viridis256, low=0.0, high=150.0)
 probability_figure = figure(
     title="Assignment probability", 
     tools="hover",
@@ -111,6 +112,7 @@ probability_figure = figure(
     x_axis_label="b",
     y_axis_label="a"
 )
+
 probability_figure.axis.ticker = SingleIntervalTicker(interval=1, num_minor_ticks=0)
 probability_figure.x_range.range_padding = 0
 probability_figure.y_range.range_padding = 0
@@ -126,21 +128,31 @@ probability_figure.rect(
 
 
 def update_probability_matrix():
-    nodes_a = np.array(state.unassigned_a)
-    nodes_b = np.array(state.unassigned_b)
-    with torch.no_grad():
-        pmatrix = state.agent.policy_net.compute_link_probabilities(
-            state.net_state,
-            nodes_a,
-            nodes_b
-        ).squeeze().numpy()
-    indices = pmatrix.nonzero()
-    data = dict(
-        p = pmatrix.reshape(-1),
-        a=nodes_a[indices[0]],
-        b=nodes_b[indices[1]]
-    )
-    probability_matrix_source.data = data
+    if not state.unassigned_a:
+        probability_matrix_source.data = dict(
+            p = [],
+            a = [],
+            b = []
+        )
+    else:
+        nodes_a = np.array(state.unassigned_a)
+        nodes_b = np.array(state.unassigned_b)
+        with torch.no_grad():
+            logits = state.agent.policy_net.compute_link_probabilities(
+                state.net_state,
+                nodes_a,
+                nodes_b
+            ).squeeze()
+            policy = Categorical2D(logits=logits)
+            probs = policy.distribution.probs.numpy()
+            log_probs = logits.ravel().numpy()
+            indices = np.indices(logits.shape)
+        data = dict(
+            p = log_probs,
+            a=nodes_a[indices[0].ravel()],
+            b=nodes_b[indices[1].ravel()]
+        )
+        probability_matrix_source.data = data
 
 def reset_click_callback():
     reset_state()
@@ -161,8 +173,8 @@ checkpoint_slider.on_change("value", checkpoint_slider_callback)
 qap_insight_layout = column(qaps_dropdown, row(checkpoint_slider, agent_name_text), reset_button, probability_figure)
 
 def matrix_tapped(event):
-    a = int(np.round(event.x))
-    b = int(np.round(event.y))
+    b = int(np.round(event.x))
+    a = int(np.round(event.y))
     state.assignment_step(a, b)
     update_probability_matrix()
 
