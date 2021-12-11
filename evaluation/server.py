@@ -4,7 +4,7 @@ from bokeh.core.property.container import Seq
 from bokeh.core.property.factors import Factor
 from bokeh.events import Tap
 
-from bokeh.layouts import column, row
+from bokeh.layouts import column, gridplot, row
 from bokeh.models import Button, Select, ColumnDataSource, Slider, LinearColorMapper, Div
 from bokeh.models.tickers import SingleIntervalTicker
 from bokeh.plotting import curdoc, figure
@@ -12,6 +12,7 @@ from bokeh.transform import transform
 from bokeh.palettes import Viridis256
 import numpy as np
 import torch
+from torch._C import dtype
 from torch.distributions.categorical import Categorical
 
 from drlqap.evaltools import load_checkpoints, load_float_txt
@@ -27,12 +28,15 @@ class AgentState:
         self.unassigned_a = list(qap.graph_source.nodes)
         self.unassigned_b = list(qap.graph_target.nodes)
         with torch.no_grad():
-            self.net_state = agent.policy_net.initial_step(qap)
+            self.net_base_state = agent.policy_net.initial_step(qap)
+            self.net_state = agent.policy_net.message_passing_step(self.net_base_state)
 
     def assignment_step(self, a, b):
-        self.unassigned_a.remove(a)
-        self.unassigned_b.remove(b)
-        self.net_state = self.agent.policy_net.assignment_step(self.net_state, a, b)
+        with torch.no_grad():
+            self.unassigned_a.remove(a)
+            self.unassigned_b.remove(b)
+            self.net_base_state = self.agent.policy_net.assignment_step(self.net_base_state, self.net_state, a, b)
+            self.net_state = self.agent.policy_net.message_passing_step(self.net_base_state)
 
 # global state
 experiment_path = None
@@ -44,7 +48,11 @@ state: AgentState = None
 training_results = ColumnDataSource(data=dict(episode=[], value=[], entropy=[], gradient=[]))
 
 # matrix data
-probability_matrix_source = ColumnDataSource(dict(a=[], b=[], p=[]))
+probability_matrix_source = ColumnDataSource(dict(a=[], b=[], p=[], l=[]))
+node_embedding_sources = (
+    ColumnDataSource(dict(i=[], j=[], base=[], mp=[])),
+    ColumnDataSource(dict(i=[], j=[], base=[], mp=[]))
+)
 
 # data loaders
 def update_experiment(path):
@@ -58,9 +66,6 @@ def update_experiment(path):
 def update_callback():
     update_experiment(experiment_path)
 
-def update_matrices():
-    update_probability_matrix()
-
 def reset_state():
     global state, qap
     if qap is not None and checkpoints is not None:
@@ -68,7 +73,7 @@ def reset_state():
         agent_name_text.text = agent.checkpoint_name
         checkpoint_slider.show_value
         state = AgentState(qap, agent)
-        update_matrices()
+        state_updated()
 
 checkpoint_slider = Slider(title="Checkpoint", start=0, end=1, step=1, value=0)
 agent_name_text = Div()
@@ -102,35 +107,73 @@ entropy_plot.scatter(x='episode', y='entropy', source=training_results)
 plot_layout = column(value_plot, entropy_plot)
 
 # QAP test runs
-colormap = LinearColorMapper(Viridis256, low=0.0, high=150.0)
-probability_figure = figure(
-    title="Assignment probability", 
-    tools="hover",
-    toolbar_location=None,
-    tooltips=[("P", "@p"), ("a", "@a"), ("b", "@b")],
-    x_axis_location="above",
-    x_axis_label="b",
-    y_axis_label="a"
+def create_matrix_plot(title, i_column, j_column, value_column, source, low=None, high=None):
+    colormap = LinearColorMapper(Viridis256, low=low, high=high)
+    fig = figure(
+        title=title, 
+        tools="hover",
+        toolbar_location=None,
+        tooltips=[(value_column, "@" + value_column), (i_column, "@" + i_column), (j_column, "@" + j_column)],
+        x_axis_location="above",
+        x_axis_label=j_column,
+        y_axis_label=i_column
+    )
+
+    fig.axis.ticker = SingleIntervalTicker(interval=1, num_minor_ticks=0)
+    fig.x_range.range_padding = 0
+    fig.y_range.range_padding = 0
+    fig.y_range.flipped = True
+    fig.grid.visible = True
+
+    fig.rect(
+        x=j_column, y=i_column,
+        color=transform(value_column, colormap), 
+        source=source,
+        width=1, height=1,
+    )
+
+    return fig
+
+probability_figure = create_matrix_plot(
+    title="Assignment probability",
+    i_column="a", j_column="b", value_column="p", 
+    source=probability_matrix_source, low=0.0, high=1.0
 )
 
-probability_figure.axis.ticker = SingleIntervalTicker(interval=1, num_minor_ticks=0)
-probability_figure.x_range.range_padding = 0
-probability_figure.y_range.range_padding = 0
-probability_figure.y_range.flipped = True
-probability_figure.grid.visible = False
-
-probability_figure.rect(
-    x="b", y="a", # flipped to make it look like matrix notation
-    color=transform("p", colormap), 
-    source=probability_matrix_source,
-    width=1, height=1
+logit_figure = create_matrix_plot(
+    title="Assignment logit probability",
+    i_column="a", j_column="b", value_column="l", 
+    source=probability_matrix_source
 )
 
+node_embedding_figures = [
+    (
+        create_matrix_plot(
+            title=f"Node embeddings of graph {i} before message passing", 
+            i_column='i', j_column='j', value_column='base',
+            source=source
+        ),
+        create_matrix_plot(
+            title=f"Node embeddings of graph {i}", 
+            i_column='i', j_column='j', value_column='mp',
+            source=source),
+    )
+    for i, source in enumerate(node_embedding_sources)
+]
+
+agent_state_layout = column(
+    row(probability_figure, logit_figure),
+    gridplot(node_embedding_figures, width=600, height=400),
+)
+
+def flatten_tensor(m: torch.tensor) -> np.ndarray:
+    return m.ravel().numpy()
 
 def update_probability_matrix():
     if not state.unassigned_a:
         probability_matrix_source.data = dict(
             p = [],
+            l = [],
             a = [],
             b = []
         )
@@ -147,12 +190,31 @@ def update_probability_matrix():
             probs = policy.distribution.probs.numpy()
             log_probs = logits.ravel().numpy()
             indices = np.indices(logits.shape)
-        data = dict(
-            p = log_probs,
+        
+        probability_matrix_source.data = dict(
+            p = probs,
+            l = log_probs,
             a=nodes_a[indices[0].ravel()],
             b=nodes_b[indices[1].ravel()]
         )
-        probability_matrix_source.data = data
+
+def update_node_embedding_matrix(base_embeddings, mp_embeddings, data_source):
+    indices = np.indices(base_embeddings.shape)
+
+    data_source.data =  dict(
+        base = flatten_tensor(base_embeddings),
+        mp = flatten_tensor(mp_embeddings),
+        i = indices[0].ravel(),
+        j = indices[1].ravel(),
+    )
+
+def state_updated():
+    update_probability_matrix()
+    for i in (0,1):
+        update_node_embedding_matrix(
+            state.net_base_state[i].x, state.net_state[i].x,
+            data_source=node_embedding_sources[i]
+        )
 
 def reset_click_callback():
     reset_state()
@@ -170,15 +232,17 @@ qaps_dropdown = path_select("QAPLIB Problem", qap_files, qap_selected_callback)
 reset_button = Button(label="Reset", button_type="primary")
 reset_button.on_click(reset_click_callback)
 checkpoint_slider.on_change("value", checkpoint_slider_callback)
-qap_insight_layout = column(qaps_dropdown, row(checkpoint_slider, agent_name_text), reset_button, probability_figure)
+
+qap_insight_layout = column(qaps_dropdown, row(checkpoint_slider, agent_name_text), reset_button, agent_state_layout)
 
 def matrix_tapped(event):
     b = int(np.round(event.x))
     a = int(np.round(event.y))
     state.assignment_step(a, b)
-    update_probability_matrix()
+    state_updated()
 
 probability_figure.on_event(Tap, matrix_tapped)
+logit_figure.on_event(Tap, matrix_tapped)
 
 # put the load_button and plot in a layout and add to the document
 curdoc().add_root(column(agent_dropdown, plot_layout, qap_insight_layout))
