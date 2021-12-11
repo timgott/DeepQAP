@@ -41,7 +41,7 @@ class ReinforceAgent:
         unassigned_b = list(qap.graph_target.nodes)
         assignment = np.empty(qap.size, dtype=int)
 
-        state = self.policy_net.initial_step(qap)
+        base_state = self.policy_net.initial_step(qap)
 
         # Statistics
         entropies = []
@@ -50,6 +50,8 @@ class ReinforceAgent:
         log_probs = 0
 
         for i in range(qap.size):
+            state = self.policy_net.message_passing_step(base_state)
+
             # Compute probabilities for every pair p_ij = P(a_i -> b_j)
             probabilities = self.policy_net.compute_link_probabilities(state, unassigned_a, unassigned_b)
 
@@ -65,6 +67,9 @@ class ReinforceAgent:
             a = unassigned_a.pop(pair[0])
             b = unassigned_b.pop(pair[1])
             assignment[a] = b
+
+            # Run link embedding network
+            base_state = self.policy_net.assignment_step(base_state, state, a, b)
 
             # Add log prob
             log_probs += policy.log_prob(pair)

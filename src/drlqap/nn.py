@@ -67,16 +67,18 @@ class NodeTransformer(torch.nn.Module):
             TransformerConv(hidden_channels, hidden_channels, edge_dim=edge_embedding_size),
         ])
         
-        self.skip_linear = torch.nn.Linear(len(self.layers) * hidden_channels, node_embedding_size)
+        self.skip_linear = torch.nn.Linear(
+            node_embedding_size + len(self.layers) * hidden_channels, node_embedding_size
+        )
 
     def forward(self, x, edge_index, edge_attr):
-        intermediates = []
+        intermediates = [x]
         for network in self.layers:
             x = network(x, edge_index=edge_index, edge_attr=edge_attr)
             x = F.elu(x)
             intermediates.append(x)
         
-        # concatenate layer output for every node
+        # concatenate input and layer outputs for every node
         skip_xs = torch.cat(intermediates, dim=-1)
         x = self.skip_linear(skip_xs)
         x = F.elu(x)
@@ -125,7 +127,6 @@ class QAPNet(torch.nn.Module):
 
         # Message passing node embedding net
         self.message_passing_net = message_passing_net
-        assert self.message_passing_net == None, "Message passing currently not implemented"
 
         # Network that computes linked embeddings of assigned nodes
         # input: concatenated node embeddings
@@ -156,6 +157,20 @@ class QAPNet(torch.nn.Module):
         data_b = self.transform_initial_graph(qap.graph_target)
         return (data_a, data_b)
 
+    def message_passing_step(self, state):
+        if not self.message_passing_net:
+            return state
+        
+        new_embeddings = (
+            self.message_passing_net(data.x, data.edge_index, data.edge_attr)
+            for data in state
+        )
+        new_state = tuple(
+            GraphData(x=x, edge_index=data.edge_index, edge_attr=data.edge_attr)
+            for x, data in zip(new_embeddings, state)
+        )
+        return new_state
+
     def compute_link_probabilities(self, state, nodes_a, nodes_b):
         data_a, data_b = state
         embeddings_a = data_a.x[nodes_a]
@@ -164,28 +179,32 @@ class QAPNet(torch.nn.Module):
 
         return self.link_probability_net(concat_embedding_matrix)
 
-    def assignment_step(self, state, a, b):
+    def assignment_step(self, base_state, state, a, b):
         data_a, data_b = state
         
-        embeddings_a = data_a.x
-        embeddings_b = data_b.x
+        embedding_a = data_a.x[a]
+        embedding_b = data_b.x[b]
 
-        print(embeddings_a.shape)
+        combined_a = torch.cat((embedding_a, embedding_b))
+        combined_b = torch.cat((embedding_b, embedding_a))
 
         # Compute new embedding for assigned nodes
-        frozen_embedding_a = self.link_encoder(torch.cat((embeddings_a[a], embeddings_b[b])))
-        frozen_embedding_b = self.link_encoder(torch.cat((embeddings_b[b], embeddings_a[a])))
+        link_embedding = tuple(
+            self.link_encoder(pair)
+            for pair in (combined_a, combined_b)
+        )
 
-        print(frozen_embedding_a.shape)
+        # Clone required for autograd
+        new_embedding_matrices = tuple(data.x.clone() for data in base_state)
 
         # Overwrite original embedding
-        new_embeddings_a = embeddings_a.clone() # Clone required for autograd
-        new_embeddings_b = embeddings_b.clone()
-        new_embeddings_a[a] = frozen_embedding_a
-        new_embeddings_b[b] = frozen_embedding_b
+        new_embedding_matrices[0][a] = link_embedding[0]
+        new_embedding_matrices[1][b] = link_embedding[1]
 
-        new_data_a = GraphData(x=new_embeddings_a, edge_index=data_a.edge_index, edge_attr=data_a.edge_attr)
-        new_data_b = GraphData(x=new_embeddings_b, edge_index=data_b.edge_index, edge_attr=data_b.edge_attr)
+        new_state = tuple(
+            GraphData(x=x, edge_index=data.edge_index, edge_attr=data.edge_attr)
+            for x, data in zip(new_embedding_matrices, base_state)
+        )
 
-        return (new_data_a, new_data_b)
+        return new_state
 
