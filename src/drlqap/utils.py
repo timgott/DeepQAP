@@ -35,3 +35,4 @@ class IncrementalStats():
         self.sum = state["sum"]
         self.sqr_sum = state["sqr_sum"]
         self.count = state["count"]
+

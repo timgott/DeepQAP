@@ -2,6 +2,92 @@ from typing import List
 import networkx as nx
 import numpy as np
 from networkx import Graph
+import torch
+
+class QAP:
+    """
+    Represents a quadratic assignment problem with linear term of the form
+    ∑ᵢ≠ⱼ (Aᵢ,ⱼ*Bₚ₍ᵢ₎,ₚ₍ⱼ₎) + ∑ᵢ (Lᵢ,ₚ₍ᵢ₎) + C
+    """
+    A: torch.Tensor
+    B: torch.Tensor
+    linear_costs: torch.Tensor
+    fixed_cost: float
+    size: int
+
+    def __init__(self, A: torch.Tensor, B: torch.Tensor, linear_costs: torch.Tensor, fixed_cost: float) -> None:
+        # Require 0 diagonals; Any problem can be rewritten
+        assert(torch.all(A.diag() == 0))
+        assert(torch.all(B.diag() == 0))
+        
+        self.size = A.size(0)
+        assert(A.shape == (self.size, self.size))
+        assert(B.shape == A.shape)
+        assert(linear_costs.shape == A.shape)
+
+        self.A = A
+        self.B = B
+        self.linear_costs = linear_costs
+        self.fixed_cost = fixed_cost
+
+    def compute_value(self, assignment):
+        i = torch.arange(self.size)
+        return torch.sum(self.A * self.B[assignment,:][:,assignment]) \
+            + torch.sum(self.linear_costs[i,assignment]) \
+            + self.fixed_cost
+
+    # I/O
+    def from_qaplib_string(qaplib_str, normalize=False):
+        data = qaplib_str.split()
+        size = int(data[0])
+
+        assert len(data) == 1 + 2 * size*size
+
+        def parse_matrix(data, offset, size):
+            # format and optionally normalize
+            array = torch.tensor(data[offset:offset + size*size]).reshape((size, size))
+            if normalize:
+                lower = torch.min(array)
+                upper = torch.max(array)
+                return (array - lower) / (upper - lower)
+            else:
+                return array
+
+        float_data = [float(x) for x in data[1:]]
+        A = parse_matrix(float_data, 0, size)
+        B = parse_matrix(float_data, size*size, size)
+
+        assert A.shape == (size, size)
+        assert B.shape == (size, size)
+
+        L = torch.matmul(A.diag().reshape(size, 1), B.diag().reshape(1, size))
+
+        A.fill_diagonal_(0)
+        B.fill_diagonal_(0)
+
+        return QAP(A, B, L, 0)
+
+    def create_subproblem_for_assignment(self, a, b):
+        """
+        Create a the new QAP that represents the problem after assigning a->b
+        """
+
+        new_size = self.size - 1
+
+        # New constant term is computed from previous linear_term of the assigned nodes
+        constant = self.fixed_cost + self.linear_costs[a, b]
+
+        # all nodes in A except a; all ndoes in B except b
+        not_a = list((*range(0, a), *range(a+1,self.size)))
+        not_b = list((*range(0, b), *range(b+1,self.size)))
+
+        # New linear cost is computed from quadratic cost from/towards the assigned nodes
+        incoming_costs = self.A[a, not_a].reshape(new_size, 1) * self.B[b, not_b].reshape(1, new_size)
+        outgoing_costs = self.A[not_a, a].reshape(new_size, 1) * self.B[not_b, b].reshape(1, new_size)
+        new_linear_cost = incoming_costs + outgoing_costs + self.linear_costs[not_a,:][:,not_b]
+
+        return QAP(A=self.A[not_a][:,not_a], B=self.B[not_b][:,not_b], linear_costs=new_linear_cost, fixed_cost=constant)
+
 
 class GraphAssignmentProblem:
     graph_source: Graph
