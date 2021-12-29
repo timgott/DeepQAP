@@ -70,6 +70,7 @@ def mp_gat(hidden_channels, edge_embedding_size, node_embedding_size, depth):
         message_passing_net=message_passing_net,
         link_probability_net=link_probability_net
     )
+
 def mp_histogram_transformer(hidden_channels, embedding_size, depth):
     # Edge encoder.
     histogram_encoder = lambda C: nn.edge_histogram_embeddings(C, bins=embedding_size)

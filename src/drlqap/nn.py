@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch_geometric.data import HeteroData
 import copy
 from drlqap.qap import QAP
+import logging
 
 def concat_bidirectional(dense_edge_features: torch.Tensor) -> torch.Tensor:
     """
@@ -34,6 +35,11 @@ def edge_histogram_embeddings(connectivity, bins):
     lower = torch.min(connectivity)
     upper = torch.max(connectivity)
     step = (upper - lower)/bins
+
+    if step == 0:
+        logging.warning(f"Cannot compute histogram encoding for: {connectivity}")
+        return torch.zeros(connectivity.shape + (1,))
+
     range = torch.arange(lower, upper - step/2, step=step).reshape(1,1,-1)
     connectivity3d = connectivity.unsqueeze(2)
     return torch.where((connectivity3d >= range) & (connectivity3d < range + step), 1.0, 0.0)
@@ -150,6 +156,8 @@ class ReinforceNet(torch.nn.Module):
             node_types = ['a', 'b']
             metadata = (node_types, edge_types)
             self.message_passing_net = to_hetero(message_passing_net, metadata)
+        else:
+            self.message_passing_net = None
 
         # Network that computes logit probability that two nodes should be linked
         # (probabilities are asymmetric, computed both for a,b and b,a)
@@ -199,6 +207,13 @@ class ReinforceNet(torch.nn.Module):
         return self.link_probability_net(concat_embedding_matrix)
 
     def forward(self, qap: QAP):
+        # trivial QAP
+        if qap.size == 1:
+            return torch.tensor([[[1.]]])
+
         hdata = self.initial_transformation(qap)
-        node_dict = self.message_passing_net(hdata.x_dict, hdata.edge_index_dict, hdata.edge_attr_dict)
+        if self.message_passing_net:
+            node_dict = self.message_passing_net(hdata.x_dict, hdata.edge_index_dict, hdata.edge_attr_dict)
+        else:
+            node_dict = hdata.x_dict
         return self.compute_link_probabilities(node_dict['a'], node_dict['b'])
