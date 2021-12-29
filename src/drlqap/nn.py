@@ -1,18 +1,19 @@
-import networkx
 import torch
 from torch.nn import ModuleList, Sequential
-from torch_geometric.nn import TransformerConv
-from torch_geometric.data import Data as GraphData
+from torch_geometric.nn import TransformerConv, to_hetero, Linear, GATv2Conv
 import torch.nn.functional as F
+from torch_geometric.data import HeteroData
+import copy
+from drlqap.qap import QAP
 
-"""
-Concatenate the embedding of each edge with the embedding of its reverse edge.
-
-input: (n,n,d) n: number of nodes
-
-output: (n,n,d*2)
-"""
 def concat_bidirectional(dense_edge_features: torch.Tensor) -> torch.Tensor:
+    """
+    Concatenate the embedding of each edge with the embedding of its reverse edge.
+
+    input: (n,n,d) n: number of nodes
+
+    output: (n,n,d*2)
+    """
     transposed = dense_edge_features.transpose(0, 1)
     return torch.cat((dense_edge_features, transposed), dim=2)
 
@@ -37,10 +38,10 @@ def edge_histogram_embeddings(connectivity, bins):
     connectivity3d = connectivity.unsqueeze(2)
     return torch.where((connectivity3d >= range) & (connectivity3d < range + step), 1.0, 0.0)
     
-def bidirectional_edge_histogram_embeddings(connectivity):
-    incoming = edge_histogram_embeddings(connectivity)
-    outgoing = edge_histogram_embeddings(connectivity.T)
-    return torch.cat(incoming, outgoing, dim=1)
+def bidirectional_edge_histogram_embeddings(connectivity, bins):
+    incoming = edge_histogram_embeddings(connectivity, bins)
+    outgoing = edge_histogram_embeddings(connectivity.T, bins)
+    return torch.cat((incoming, outgoing), dim=1)
 
 
 # Create matrix where entry ij is cat(a_i,b_j)
@@ -66,8 +67,8 @@ class NodeTransformer(torch.nn.Module):
             TransformerConv(node_embedding_size, hidden_channels, edge_dim=edge_embedding_size),
             TransformerConv(hidden_channels, hidden_channels, edge_dim=edge_embedding_size),
         ])
-        
-        self.skip_linear = torch.nn.Linear(
+
+        self.skip_linear = Linear(
             node_embedding_size + len(self.layers) * hidden_channels, node_embedding_size
         )
 
@@ -77,11 +78,25 @@ class NodeTransformer(torch.nn.Module):
             x = network(x, edge_index=edge_index, edge_attr=edge_attr)
             x = F.elu(x)
             intermediates.append(x)
-        
+
         # concatenate input and layer outputs for every node
         skip_xs = torch.cat(intermediates, dim=-1)
         x = self.skip_linear(skip_xs)
         x = F.elu(x)
+        return x
+
+class GAT(torch.nn.Module):
+    def __init__(self, node_channels, hidden_channels, edge_embedding_size):
+        super().__init__()
+        self.conv1 = GATv2Conv((-1, -1), hidden_channels, edge_dim=-1, add_self_loops=False)
+        self.lin1 = Linear(-1, hidden_channels)
+        self.conv2 = GATv2Conv((-1, -1), node_channels, edge_dim=-1, add_self_loops=False)
+        self.lin2 = Linear(-1, node_channels)
+
+    def forward(self, x, edge_index, edge_attr):
+        x = self.conv1(x, edge_index, edge_attr) + self.lin1(x)
+        x = x.relu()
+        x = self.conv2(x, edge_index, edge_attr) + self.lin2(x)
         return x
 
 def FullyConnected(input_channels, hidden_channels, output_channels, depth, activation):
@@ -93,11 +108,11 @@ def FullyConnected(input_channels, hidden_channels, output_channels, depth, acti
 def FullyConnectedShaped(shape, activation):
     layers = Sequential()
     for i, (inputs, outputs) in enumerate(zip(shape, shape[1:])):
-        layers.add_module(f"linear[{i}]({inputs}->{outputs})", torch.nn.Linear(inputs, outputs))
+        layers.add_module(f"linear[{i}]({inputs}->{outputs})", Linear(inputs, outputs))
         layers.add_module(f"activation[{i}]", activation())
     return layers
 
-class Bidirectional(torch.nn.Module):
+class BidirectionalDense(torch.nn.Module):
     def __init__(self, inner) -> None:
         super().__init__()
         self.inner = inner
@@ -108,13 +123,12 @@ class Bidirectional(torch.nn.Module):
         # compute edge embedding vectors from weight values
         return self.inner(bidirectional_matrix)
 
-class QAPNet(torch.nn.Module):
+class ReinforceNet(torch.nn.Module):
     def __init__(self, 
         edge_encoder,
         initial_node_encoder,
         link_probability_net,
-        link_encoder,
-        message_passing_net=None,
+        message_passing_net,
     ) -> None:
         super().__init__()
 
@@ -125,86 +139,66 @@ class QAPNet(torch.nn.Module):
         # Initial summed edge embedding -> node embedding network
         self.initial_node_encoder = initial_node_encoder
 
-        # Message passing node embedding net
-        self.message_passing_net = message_passing_net
-
-        # Network that computes linked embeddings of assigned nodes
-        # input: concatenated node embeddings
-        # output: node embedding
-        self.link_encoder = link_encoder
+        # Create heterogenous message passing net
+        if message_passing_net is not None:
+            edge_types = [
+                ('a', 'A', 'a'),
+                ('b', 'B', 'b'),
+                ('a', 'L', 'b'),
+                ('b', 'L', 'a'),
+            ]
+            node_types = ['a', 'b']
+            metadata = (node_types, edge_types)
+            self.message_passing_net = to_hetero(message_passing_net, metadata)
 
         # Network that computes logit probability that two nodes should be linked
-        # (asymmetric!)
+        # (probabilities are asymmetric, computed both for a,b and b,a)
         self.link_probability_net = link_probability_net
 
-    def transform_initial_graph(self, nx_graph):
-        # networkx graph to connectivity matrix
-        connectivity_matrix = torch.tensor(networkx.linalg.adjacency_matrix(nx_graph).todense()).float()
-        # compute edge encoding
-        edge_embeddings = self.edge_encoder(connectivity_matrix)
+    def aggregate_edges(self, edge_features):
         # aggregate edges and compute initial node embeddings
-        aggregated = sum_incoming_edges(edge_embeddings)
-        base_embeddings = self.initial_node_encoder(aggregated)
-        # matrix format to adjacency and attribute list
-        edge_index, edge_attr = dense_edge_features_to_sparse(connectivity_matrix, edge_embeddings)
-        # Create data object required for torch geometric
-        data = GraphData(x=base_embeddings, edge_index=edge_index, edge_attr=edge_attr)
+        aggregated = sum_incoming_edges(edge_features)
+        node_features = self.initial_node_encoder(aggregated)
+
+        return node_features
+
+    def initial_transformation(self, qap):
+        def matrix_to_edges(connectivity, edge_features):
+            edge_index, edge_attr = dense_edge_features_to_sparse(
+                connectivity, edge_features
+            )
+            return dict(
+                    edge_index=edge_index,
+                    edge_attr=edge_attr
+                    )
+
+        # compute edge encoding and aggregate to nodes
+        edge_vectors_a = self.edge_encoder(qap.A)
+        edge_vectors_b = self.edge_encoder(qap.B)
+        node_vectors_a = self.aggregate_edges(edge_vectors_a)
+        node_vectors_b = self.aggregate_edges(edge_vectors_b)
+
+        L = qap.linear_costs
+        Lrev = L.T
+
+        # create heterogenous pyg graph
+        data = HeteroData({
+            ('a'): dict(x=node_vectors_a),
+            ('b'): dict(x=node_vectors_b),
+            ('a', 'A', 'a'): matrix_to_edges(qap.A, edge_vectors_a),
+            ('b', 'B', 'b'): matrix_to_edges(qap.B, edge_vectors_b),
+            ('a', 'L', 'b'): matrix_to_edges(L, L),
+            ('b', 'L', 'a'): matrix_to_edges(Lrev, Lrev),
+        }, aggr='sum')
+
         return data
 
-    def initial_step(self, qap):
-        # Initial node and edge embeddings
-        data_a = self.transform_initial_graph(qap.graph_source)
-        data_b = self.transform_initial_graph(qap.graph_target)
-        return (data_a, data_b)
-
-    def message_passing_step(self, state):
-        if not self.message_passing_net:
-            return state
-        
-        new_embeddings = (
-            self.message_passing_net(data.x, data.edge_index, data.edge_attr)
-            for data in state
-        )
-        new_state = tuple(
-            GraphData(x=x, edge_index=data.edge_index, edge_attr=data.edge_attr)
-            for x, data in zip(new_embeddings, state)
-        )
-        return new_state
-
-    def compute_link_probabilities(self, state, nodes_a, nodes_b):
-        data_a, data_b = state
-        embeddings_a = data_a.x[nodes_a]
-        embeddings_b = data_b.x[nodes_b]
+    def compute_link_probabilities(self, embeddings_a, embeddings_b):
         concat_embedding_matrix = cartesian_product_matrix(embeddings_a, embeddings_b)
 
         return self.link_probability_net(concat_embedding_matrix)
 
-    def assignment_step(self, base_state, state, a, b):
-        data_a, data_b = state
-        
-        embedding_a = data_a.x[a]
-        embedding_b = data_b.x[b]
-
-        combined_a = torch.cat((embedding_a, embedding_b))
-        combined_b = torch.cat((embedding_b, embedding_a))
-
-        # Compute new embedding for assigned nodes
-        link_embedding = tuple(
-            self.link_encoder(pair)
-            for pair in (combined_a, combined_b)
-        )
-
-        # Clone required for autograd
-        new_embedding_matrices = tuple(data.x.clone() for data in base_state)
-
-        # Overwrite original embedding
-        new_embedding_matrices[0][a] = link_embedding[0]
-        new_embedding_matrices[1][b] = link_embedding[1]
-
-        new_state = tuple(
-            GraphData(x=x, edge_index=data.edge_index, edge_attr=data.edge_attr)
-            for x, data in zip(new_embedding_matrices, base_state)
-        )
-
-        return new_state
-
+    def forward(self, qap: QAP):
+        hdata = self.initial_transformation(qap)
+        node_dict = self.message_passing_net(hdata.x_dict, hdata.edge_index_dict, hdata.edge_attr_dict)
+        return self.compute_link_probabilities(node_dict['a'], node_dict['b'])

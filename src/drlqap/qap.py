@@ -1,5 +1,6 @@
-from typing import List
+from typing import Union
 import networkx as nx
+import networkx
 import numpy as np
 from networkx import Graph
 import torch
@@ -15,19 +16,29 @@ class QAP:
     fixed_cost: float
     size: int
 
-    def __init__(self, A: torch.Tensor, B: torch.Tensor, linear_costs: torch.Tensor, fixed_cost: float) -> None:
-        # Require 0 diagonals; Any problem can be rewritten
-        assert(torch.all(A.diag() == 0))
-        assert(torch.all(B.diag() == 0))
-        
+    def __init__(self, 
+            A: torch.Tensor, 
+            B: torch.Tensor,
+            linear_costs: Union[torch.Tensor, None],
+            fixed_cost: float) -> None:
+
         self.size = A.size(0)
         assert(A.shape == (self.size, self.size))
         assert(B.shape == A.shape)
-        assert(linear_costs.shape == A.shape)
+        
+        # Rewrite problems to set diagonals to 0
+        L = torch.matmul(A.diag().reshape(self.size, 1), B.diag().reshape(1, self.size))
+        if linear_costs is not None:
+            assert(linear_costs.shape == A.shape)
+            self.linear_costs = linear_costs + L
+        else:
+            self.linear_costs = L
+
+        A.fill_diagonal_(0)
+        B.fill_diagonal_(0)
 
         self.A = A
         self.B = B
-        self.linear_costs = linear_costs
         self.fixed_cost = fixed_cost
 
     def compute_value(self, assignment):
@@ -35,37 +46,6 @@ class QAP:
         return torch.sum(self.A * self.B[assignment,:][:,assignment]) \
             + torch.sum(self.linear_costs[i,assignment]) \
             + self.fixed_cost
-
-    # I/O
-    def from_qaplib_string(qaplib_str, normalize=False):
-        data = qaplib_str.split()
-        size = int(data[0])
-
-        assert len(data) == 1 + 2 * size*size
-
-        def parse_matrix(data, offset, size):
-            # format and optionally normalize
-            array = torch.tensor(data[offset:offset + size*size]).reshape((size, size))
-            if normalize:
-                lower = torch.min(array)
-                upper = torch.max(array)
-                return (array - lower) / (upper - lower)
-            else:
-                return array
-
-        float_data = [float(x) for x in data[1:]]
-        A = parse_matrix(float_data, 0, size)
-        B = parse_matrix(float_data, size*size, size)
-
-        assert A.shape == (size, size)
-        assert B.shape == (size, size)
-
-        L = torch.matmul(A.diag().reshape(size, 1), B.diag().reshape(1, size))
-
-        A.fill_diagonal_(0)
-        B.fill_diagonal_(0)
-
-        return QAP(A, B, L, 0)
 
     def create_subproblem_for_assignment(self, a, b):
         """
@@ -75,7 +55,7 @@ class QAP:
         new_size = self.size - 1
 
         # New constant term is computed from previous linear_term of the assigned nodes
-        constant = self.fixed_cost + self.linear_costs[a, b]
+        constant = self.fixed_cost + self.linear_costs[a, b].item()
 
         # all nodes in A except a; all ndoes in B except b
         not_a = list((*range(0, a), *range(a+1,self.size)))
@@ -89,13 +69,9 @@ class QAP:
         return QAP(A=self.A[not_a][:,not_a], B=self.B[not_b][:,not_b], linear_costs=new_linear_cost, fixed_cost=constant)
 
 
-class GraphAssignmentProblem:
+class GraphAssignmentProblem(QAP):
     graph_source: Graph
     graph_target: Graph
-    size: int
-    assignment: List[int]
-    unassigned_variables: List[int]
-    unassigned_targets: List[int]
 
     # edge_weights: (start, end): weight
     def __init__(self, graph_source: Graph, graph_target: Graph):
@@ -103,23 +79,17 @@ class GraphAssignmentProblem:
         assert nx.is_weighted(graph_source)
         assert nx.is_weighted(graph_target)
 
+        super().__init__(
+            torch.tensor(nx.adjacency_matrix(graph_source).todense(), dtype=torch.float32), 
+            torch.tensor(nx.adjacency_matrix(graph_target).todense(), dtype=torch.float32),
+            None, 0
+        )
+
         self.graph_source = graph_source
         self.graph_target = graph_target
-        self.size = min(graph_source.number_of_nodes(), graph_target.number_of_nodes())
-
-    def compute_value(self, assignment):
-        value: int = 0
-        for x1, x2, weight in self.graph_source.edges.data("weight"):
-            y1, y2 = assignment[x1], assignment[x2]
-            assert(y1 in self.graph_target), f"{y1} not in graph ({list(self.graph_target)})"
-            assert(y2 in self.graph_target), f"{y2} not in graph ({list(self.graph_target)})"
-            if self.graph_target.has_edge(y1, y2):
-                value += weight * self.graph_target.edges[y1, y2]["weight"]
-            # edge not in graph => weight 0
-
-        return value
 
     # I/O
+    @staticmethod
     def from_qaplib_string(qaplib_str, normalize=False):
         data = qaplib_str.split()
         size = int(data[0])

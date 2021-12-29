@@ -1080,7 +1080,7 @@ typing-extensions = "*"
 
 [[package]]
 name = "torch-geometric"
-version = "2.0.2"
+version = "2.0.3"
 description = "Graph Neural Network Library for PyTorch"
 category = "main"
 optional = false
@@ -1238,7 +1238,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8.0"
-content-hash = "05370e9c5dbd587a59493a8d9e75acc19f28627941ab0070f516424828fc1bd2"
+content-hash = "028779575378f8d559a318f0794bad3416251416f694e6046e29436a6fb12dc4"
 
 [metadata.files]
 appnope = [
@@ -2071,7 +2071,7 @@ torch = [
     {file = "torch-1.10.0-cp39-none-macosx_11_0_arm64.whl", hash = "sha256:eea675ec01ec4b4a0655fd2984f166a5ca3b933dae6ad4eb4e52eba7026dc176"},
 ]
 torch-geometric = [
-    {file = "torch_geometric-2.0.2.tar.gz", hash = "sha256:9f5e7fbf920dc65cad28b91f923252f54d1f1490aeb4a3ff2bec5846f429ed44"},
+    {file = "torch_geometric-2.0.3.tar.gz", hash = "sha256:59c41993a0f6cc0e29efa6ca6274cc97bd6557e54bf7d3d38213933f821701c6"},
 ]
 torch-scatter = [
     {file = "torch_scatter-2.0.9.tar.gz", hash = "sha256:08f5511d64473badf0a71d156b36dc2b09b9c2f00a7cd373b935b490c477a7f1"},
