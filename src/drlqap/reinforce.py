@@ -22,8 +22,8 @@ class ReinforceAgent:
 
         # Assert shape
         n = qap.size
-        assert probabilities.shape == (n, n, 1), \
-                f"{probabilities.shape} != {n},{n},1"
+        assert probabilities.shape == (n, n), \
+                f"{probabilities.shape} != {n},{n}"
 
         # Create distribution over pairs
         policy = Categorical2D(logits=probabilities, shape=(n,n))
@@ -57,17 +57,17 @@ class ReinforceAgent:
             reward = env.step(pair)
             rewards.append(reward)
 
-        # Compute accumulated rewards
-        returns = utils.reverse_cumsum(rewards)
-
         if learn:
-            for x in returns:
+            for x in rewards:
                 self.baseline.add(x)
 
-            baselined_returns = returns - self.baseline.mean()
+            baselined_rewards = np.array(rewards) - self.baseline.mean()
+
+            # Compute accumulated rewards
+            returns = utils.reverse_cumsum(baselined_rewards)
 
             # Optimize
-            loss = torch.sum(torch.tensor(baselined_returns) * torch.stack(log_probs))
+            loss = -torch.sum(torch.tensor(returns) * torch.stack(log_probs))
             self.optimizer.zero_grad(set_to_none=True)
             loss.backward()
             self.optimizer.step()
@@ -79,7 +79,7 @@ class ReinforceAgent:
                 gradient_magnitude += torch.norm(param.grad).item()
 
         self.episode_stats = {
-                "value": returns[0],
+                "value": env.reward_sum,
                 "entropy_average": np.mean(entropies),
                 "episode_entropies": np.array(entropies),
                 "gradient_magnitude": gradient_magnitude

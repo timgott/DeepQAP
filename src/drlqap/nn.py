@@ -203,16 +203,19 @@ class ReinforceNet(torch.nn.Module):
 
     def compute_link_probabilities(self, embeddings_a, embeddings_b):
         concat_embedding_matrix = cartesian_product_matrix(embeddings_a, embeddings_b)
-        return self.link_probability_net(concat_embedding_matrix)
+        probs = self.link_probability_net(concat_embedding_matrix)
+        n, m = embeddings_a.size(0), embeddings_b.size(0)
+        return probs.reshape((n, m))
 
     def forward(self, qap: QAP):
-        # trivial QAP
+        # trivial QAPs
         if qap.size == 1:
-            return torch.tensor([[[1.]]])
+            return torch.tensor([[1.]])
 
         hdata = self.initial_transformation(qap)
         if self.message_passing_net:
             node_dict = self.message_passing_net(hdata.x_dict, hdata.edge_index_dict, hdata.edge_attr_dict)
         else:
             node_dict = hdata.x_dict
+
         return self.compute_link_probabilities(node_dict['a'], node_dict['b'])

@@ -1,4 +1,5 @@
 from drlqap import reinforce_nets
+from drlqap.dqn import DQNAgent
 from drlqap.reinforce import ReinforceAgent
 
 agents = dict()
@@ -39,3 +40,7 @@ def reinforce_mp_transformer_low_lr():
 @define_agent_config
 def reinforce_mp_transformer_histogram():
     return ReinforceAgent(reinforce_nets.mp_histogram_transformer(64,32,3))
+
+@define_agent_config
+def dqn_gat():
+    return DQNAgent(reinforce_nets.mp_gat(64,32,32,3))

@@ -68,7 +68,10 @@ def reverse_cumsum(data):
     cumulative = np.array(data)
     flipped = np.flip(cumulative)
     np.cumsum(flipped, out=flipped)
-    assert(cumulative[0] == sum(data))
-    assert(cumulative[-1] == data[-1])
+    assert(np.allclose(cumulative[0], sum(data)))
+    assert(np.allclose(cumulative[-1], data[-1]))
     return cumulative
 
+def argmax2d(x):
+    max_index = torch.argmax(x)
+    return np.unravel_index(max_index, shape=x.shape)

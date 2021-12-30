@@ -1,6 +1,7 @@
 from drlqap.qap import QAP
 from typing import Union, List
 import numpy as np
+import random
 
 
 class QAPEnv:
@@ -26,6 +27,10 @@ class QAPEnv:
     def get_unassigned_nodes(self):
         return self.unassigned_a, self.unassigned_b
 
+    def random_action(self):
+        n = self.remaining_qap.size
+        return (random.randrange(n), random.randrange(n))
+
     def step(self, pair):
         i, j = pair
         a = self.unassigned_a.pop(i)
@@ -34,11 +39,13 @@ class QAPEnv:
         self.assignment[a] = b
 
         subproblem = self.remaining_qap.create_subproblem_for_assignment(i, j)
-        reward = subproblem.fixed_cost - self.remaining_qap.fixed_cost
+        reward = self.remaining_qap.fixed_cost - subproblem.fixed_cost
+        assert(reward <= 0)
+
         self.remaining_qap = subproblem
         self.done = (subproblem.size == 0)
 
-        self.reward_sum += reward
+        self.reward_sum += -reward
         if self.done:
             assert np.isclose(self.qap.compute_value(self.assignment).item(), self.reward_sum)
 
