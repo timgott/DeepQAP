@@ -43,7 +43,7 @@ def edge_histogram_embeddings(connectivity, bins):
     range = torch.arange(lower, upper - step/2, step=step).reshape(1,1,-1)
     connectivity3d = connectivity.unsqueeze(2)
     return torch.where((connectivity3d >= range) & (connectivity3d < range + step), 1.0, 0.0)
-    
+
 def bidirectional_edge_histogram_embeddings(connectivity, bins):
     incoming = edge_histogram_embeddings(connectivity, bins)
     outgoing = edge_histogram_embeddings(connectivity.T, bins)
@@ -203,7 +203,6 @@ class ReinforceNet(torch.nn.Module):
 
     def compute_link_probabilities(self, embeddings_a, embeddings_b):
         concat_embedding_matrix = cartesian_product_matrix(embeddings_a, embeddings_b)
-
         return self.link_probability_net(concat_embedding_matrix)
 
     def forward(self, qap: QAP):

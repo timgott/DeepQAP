@@ -13,9 +13,6 @@ class StatsCollector:
     def start(self):
         pass
 
-    def finish(self):
-        pass
-
     def put(self, key, value):
         if not key in self.data:
             self.data[key] = [value]
