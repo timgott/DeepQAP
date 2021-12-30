@@ -1,5 +1,5 @@
 import torch
-from torch.nn import ModuleList, Sequential
+from torch.nn import Sequential
 from torch_geometric.nn import TransformerConv, to_hetero, Linear, GATv2Conv
 import torch.nn.functional as F
 from torch_geometric.data import HeteroData
@@ -65,32 +65,6 @@ def cartesian_product_matrix(a, b):
     return torch.cat((a_rows, b_columns), dim=2)
 
 
-class NodeTransformer(torch.nn.Module):
-    def __init__(self, node_embedding_size, hidden_channels, edge_embedding_size):
-        super().__init__()
-
-        self.layers = ModuleList([
-            TransformerConv(node_embedding_size, hidden_channels, edge_dim=edge_embedding_size),
-            TransformerConv(hidden_channels, hidden_channels, edge_dim=edge_embedding_size),
-        ])
-
-        self.skip_linear = Linear(
-            node_embedding_size + len(self.layers) * hidden_channels, node_embedding_size
-        )
-
-    def forward(self, x, edge_index, edge_attr):
-        intermediates = [x]
-        for network in self.layers:
-            x = network(x, edge_index=edge_index, edge_attr=edge_attr)
-            x = F.elu(x)
-            intermediates.append(x)
-
-        # concatenate input and layer outputs for every node
-        skip_xs = torch.cat(intermediates, dim=-1)
-        x = self.skip_linear(skip_xs)
-        x = F.elu(x)
-        return x
-
 class GAT(torch.nn.Module):
     def __init__(self, node_channels, hidden_channels, edge_embedding_size):
         super().__init__()
@@ -105,11 +79,13 @@ class GAT(torch.nn.Module):
         x = self.conv2(x, edge_index, edge_attr) + self.lin2(x)
         return x
 
+
 def FullyConnected(input_channels, hidden_channels, output_channels, depth, activation):
     return FullyConnectedShaped(
         [input_channels] + [hidden_channels] * depth + [output_channels],
         activation
     )
+
 
 def FullyConnectedShaped(shape, activation):
     layers = Sequential()
@@ -117,6 +93,7 @@ def FullyConnectedShaped(shape, activation):
         layers.add_module(f"linear[{i}]({inputs}->{outputs})", Linear(inputs, outputs))
         layers.add_module(f"activation[{i}]", activation())
     return layers
+
 
 class BidirectionalDense(torch.nn.Module):
     def __init__(self, inner) -> None:
