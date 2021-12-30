@@ -1,4 +1,4 @@
-
+from typing import Union
 from pathlib import Path
 from bokeh.core.property.container import Seq
 from bokeh.core.property.factors import Factor
@@ -17,6 +17,7 @@ from torch.distributions.categorical import Categorical
 
 from drlqap.evaltools import load_checkpoints, load_float_txt
 from drlqap.qap import GraphAssignmentProblem
+from drlqap.qapenv import QAPEnv
 from drlqap.reinforce import Categorical2D, ReinforceAgent
 
 agent_folders = list(Path("runs").iterdir())
@@ -25,18 +26,34 @@ qap_files = list(Path("qapdata").glob("*.dat"))
 class AgentState:
     def __init__(self, qap: GraphAssignmentProblem, agent: ReinforceAgent) -> None:
         self.agent = agent
-        self.unassigned_a = list(qap.graph_source.nodes)
-        self.unassigned_b = list(qap.graph_target.nodes)
+        self.env = QAPEnv(qap)
+        self.compute_net_state()
+
+    def get_policy(self):
         with torch.no_grad():
-            self.net_base_state = agent.policy_net.initial_step(qap)
-            self.net_state = agent.policy_net.message_passing_step(self.net_base_state)
+            return self.agent.get_policy(self.env.get_state())
+
+    def compute_net_state(self):
+        with torch.no_grad():
+            net = self.agent.policy_net
+            hdata = net.initial_transformation(self.env.get_state())
+            self.net_base_state = (hdata.x_dict['a'], hdata.x_dict['b'])
+            if net.message_passing_net:
+                node_dict = net.message_passing_net(hdata.x_dict, hdata.edge_index_dict, hdata.edge_attr_dict)
+            else:
+                node_dict = hdata.x_dict
+            self.net_state = (node_dict['a'], node_dict['b'])
 
     def assignment_step(self, a, b):
-        with torch.no_grad():
-            self.unassigned_a.remove(a)
-            self.unassigned_b.remove(b)
-            self.net_base_state = self.agent.policy_net.assignment_step(self.net_base_state, self.net_state, a, b)
-            self.net_state = self.agent.policy_net.message_passing_step(self.net_base_state)
+        try:
+            i = self.env.unassigned_a.index(a)
+            j = self.env.unassigned_b.index(b)
+        except ValueError:
+            print("invalid assignment")
+        else:
+            self.env.step((i,j))
+            self.compute_net_state()
+
 
 # global state
 experiment_path = None
@@ -166,11 +183,11 @@ agent_state_layout = column(
     gridplot(node_embedding_figures, width=600, height=400),
 )
 
-def flatten_tensor(m: torch.tensor) -> np.ndarray:
+def flatten_tensor(m: torch.Tensor) -> np.ndarray:
     return m.ravel().numpy()
 
 def update_probability_matrix():
-    if not state.unassigned_a:
+    if not state.env.unassigned_a:
         probability_matrix_source.data = dict(
             p = [],
             l = [],
@@ -178,18 +195,13 @@ def update_probability_matrix():
             b = []
         )
     else:
-        nodes_a = np.array(state.unassigned_a)
-        nodes_b = np.array(state.unassigned_b)
+        nodes_a = np.array(state.env.unassigned_a)
+        nodes_b = np.array(state.env.unassigned_b)
         with torch.no_grad():
-            logits = state.agent.policy_net.compute_link_probabilities(
-                state.net_state,
-                nodes_a,
-                nodes_b
-            ).squeeze()
-            policy = Categorical2D(logits=logits)
+            policy = state.get_policy()
             probs = policy.distribution.probs.numpy()
-            log_probs = logits.ravel().numpy()
-            indices = np.indices(logits.shape)
+            log_probs = policy.distribution.logits.numpy()
+            indices = np.indices(policy.shape)
         
         probability_matrix_source.data = dict(
             p = probs,
@@ -212,7 +224,7 @@ def state_updated():
     update_probability_matrix()
     for i in (0,1):
         update_node_embedding_matrix(
-            state.net_base_state[i].x, state.net_state[i].x,
+            state.net_base_state[i], state.net_state[i],
             data_source=node_embedding_sources[i]
         )
 
