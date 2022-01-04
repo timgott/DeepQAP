@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from typing import Tuple
+import math
 
 class IncrementalStats():
     def __init__(self) -> None:
@@ -75,3 +75,6 @@ def reverse_cumsum(data):
 def argmax2d(x):
     max_index = torch.argmax(x)
     return np.unravel_index(max_index, shape=x.shape)
+
+def exp_halflife(x):
+    return math.log(2) * x

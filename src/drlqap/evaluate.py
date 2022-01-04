@@ -2,6 +2,7 @@ import numpy as np
 import random
 from pathlib import Path
 import sys
+from drlqap.dqn import DQNAgent
 from drlqap.qap import GraphAssignmentProblem
 from drlqap.simplesolver import solve_qap_backtracking
 from drlqap import taskgenerators
@@ -21,6 +22,8 @@ def compute_random_average_value(qap: GraphAssignmentProblem, samples=100):
 
 def compute_agent_average_value(agent, qap: GraphAssignmentProblem, samples=100):
     values = []
+    if isinstance(agent, DQNAgent):
+        samples = 1
     for i in range(samples):
         value, assignment = agent.solve(qap)
         values.append(value)

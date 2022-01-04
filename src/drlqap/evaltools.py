@@ -21,8 +21,11 @@ def load_checkpoints(path_prefix: Path):
     return agents
 
 def load_float_txt(path: Path):
-    with open(path) as f:
-        return [float(line) for line in f.readlines()]
+    try:
+        with open(path) as f:
+            return [float(line) for line in f.readlines()]
+    except FileNotFoundError:
+        return []
 
 def plot_embedding(ax, embedding):
     with torch.no_grad():

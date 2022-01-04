@@ -20,6 +20,11 @@ def qaplib_bur26a():
         return GraphAssignmentProblem.from_qaplib_string(f.read())
 
 @define_problem_generator
+def qaplib_bur26a_normalized():
+    with open("qapdata/bur26a.dat") as f:
+        return GraphAssignmentProblem.from_qaplib_string(f.read(), normalize=True)
+
+@define_problem_generator
 def small_fixed():
     with open("qapdata/testgraph.dat") as f:
         return GraphAssignmentProblem.from_qaplib_string(f.read())

@@ -37,8 +37,7 @@ def edge_histogram_embeddings(connectivity, bins):
     step = (upper - lower)/bins
 
     if step == 0:
-        logging.warning(f"Cannot compute histogram encoding for: {connectivity}")
-        return torch.zeros(connectivity.shape + (1,))
+        return torch.zeros(connectivity.shape + (bins,))
 
     range = torch.arange(lower, upper - step/2, step=step).reshape(1,1,-1)
     connectivity3d = connectivity.unsqueeze(2)
@@ -64,6 +63,9 @@ def cartesian_product_matrix(a, b):
 
     return torch.cat((a_rows, b_columns), dim=2)
 
+# Create matrix where entry ij is <a_i . b_j>
+def dot_product_matrix(a, b):
+    return torch.matmul(a, b.transpose(0, 1))
 
 class GAT(torch.nn.Module):
     def __init__(self, node_channels, hidden_channels, edge_embedding_size):
@@ -93,6 +95,13 @@ def FullyConnectedShaped(shape, activation):
         layers.add_module(f"linear[{i}]({inputs}->{outputs})", Linear(inputs, outputs))
         layers.add_module(f"activation[{i}]", activation())
     return layers
+
+
+def FullyConnectedLinearOut(in_channels, hidden_channels, out_channels, depth, activation):
+    return Sequential(
+        FullyConnected(in_channels, hidden_channels, hidden_channels, depth-1, activation),
+        Linear(hidden_channels, out_channels)
+    )
 
 
 class BidirectionalDense(torch.nn.Module):

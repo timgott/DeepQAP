@@ -32,8 +32,8 @@ class DQNAgent:
             batch_size = 128,
             gamma = 0.999,
             eps_start = 0.9,
-            eps_end = 0.1,
-            eps_decay = 5000,
+            eps_end = 0.05,
+            eps_decay = 2000,
             policy_update_every = 10,
             target_update_every = 100,
             learning_rate = 1e-2
@@ -106,7 +106,8 @@ class DQNAgent:
 
 
     def run_episode(self, env: QAPEnv, learn=True):
-        epsilon = self.compute_epsilon(self.episode_count)
+        # epsilon-greedy when learning, greedy otherwise
+        epsilon = self.compute_epsilon(self.episode_count) if learn else 0
 
         while not env.done:
             self.step(env, epsilon)
