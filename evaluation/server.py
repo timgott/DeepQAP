@@ -29,20 +29,31 @@ class AgentState:
         self.env = QAPEnv(qap)
         self.compute_net_state()
 
+    def has_policy(self):
+        return hasattr(self.agent, "get_policy")
+
     def get_policy(self):
         with torch.no_grad():
             return self.agent.get_policy(self.env.get_state())
 
     def compute_net_state(self):
         with torch.no_grad():
+            qap = self.env.get_state()
+            if qap.size == 1:
+                return torch.tensor([[1.]])
+            elif qap.size == 0:
+                return torch.tensor([[]])
             net = self.agent.policy_net
-            hdata = net.initial_transformation(self.env.get_state())
+            hdata = net.initial_transformation(qap)
             self.net_base_state = (hdata.x_dict['a'], hdata.x_dict['b'])
             if net.message_passing_net:
                 node_dict = net.message_passing_net(hdata.x_dict, hdata.edge_index_dict, hdata.edge_attr_dict)
             else:
                 node_dict = hdata.x_dict
             self.net_state = (node_dict['a'], node_dict['b'])
+
+    def compute_probabilities(self):
+        return self.agent.policy_net(self.env.get_state())
 
     def assignment_step(self, a, b):
         try:
@@ -53,6 +64,7 @@ class AgentState:
         else:
             self.env.step((i,j))
             self.compute_net_state()
+            print(self.env.reward_sum)
 
 
 # global state
@@ -198,10 +210,16 @@ def update_probability_matrix():
         nodes_a = np.array(state.env.unassigned_a)
         nodes_b = np.array(state.env.unassigned_b)
         with torch.no_grad():
-            policy = state.get_policy()
-            probs = policy.distribution.probs.numpy()
-            log_probs = policy.distribution.logits.numpy()
-            indices = np.indices(policy.shape)
+            if state.has_policy():
+                policy = state.get_policy()
+                probs = policy.distribution.probs.numpy()
+                log_probs = policy.distribution.logits.numpy()
+                indices = np.indices(policy.shape)
+            else:
+                probs2d = state.compute_probabilities().numpy()
+                probs = probs2d.flatten()
+                indices = np.indices(probs2d.shape)
+                log_probs = probs
         
         probability_matrix_source.data = dict(
             p = probs,
@@ -234,7 +252,7 @@ def reset_click_callback():
 def qap_selected_callback(attr, old_path, path: str):
     global qap
     text = Path(path).read_text()
-    qap = GraphAssignmentProblem.from_qaplib_string(text)
+    qap = GraphAssignmentProblem.from_qaplib_string(text, normalize=True)
     reset_state()
 
 def checkpoint_slider_callback(attr, old_value, new_value):
