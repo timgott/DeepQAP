@@ -71,3 +71,11 @@ def dqn_simple_lp():
         eps_decay=utils.exp_halflife(2000)
     )
 
+@define_agent_config
+def dqn_gat_no_lp():
+    return DQNAgent(
+        dqn_nets.mp_gat_no_lp(64,32,32,3),
+        learning_rate=1e-3,
+        eps_decay=utils.exp_halflife(2000),
+        eps_end=0
+    )

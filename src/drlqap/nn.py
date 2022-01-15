@@ -146,7 +146,6 @@ class ReinforceNet(torch.nn.Module):
             self.message_passing_net = None
 
         # Network that computes logit probability that two nodes should be linked
-        # (probabilities are asymmetric, computed both for a,b and b,a)
         self.link_probability_net = link_probability_net
 
     def aggregate_edges(self, edge_features):
@@ -188,15 +187,18 @@ class ReinforceNet(torch.nn.Module):
         return data
 
     def compute_link_probabilities(self, embeddings_a, embeddings_b):
-        concat_embedding_matrix = cartesian_product_matrix(embeddings_a, embeddings_b)
-        probs = self.link_probability_net(concat_embedding_matrix)
-        n, m = embeddings_a.size(0), embeddings_b.size(0)
-        return probs.reshape((n, m))
+        if self.link_probability_net:
+            concat_embedding_matrix = cartesian_product_matrix(embeddings_a, embeddings_b)
+            probs = self.link_probability_net(concat_embedding_matrix)
+            n, m = embeddings_a.size(0), embeddings_b.size(0)
+            return probs.reshape((n, m))
+        else:
+            return dot_product_matrix(embeddings_a, embeddings_b)
 
     def forward(self, qap: QAP):
-        # trivial QAPs
-        if qap.size == 1:
-            return torch.tensor([[1.]])
+        # trivial QAPs (can not stop here for DQN, value is not always 1!)
+        # if qap.size == 1:
+        #     return torch.tensor([[1.]])
 
         hdata = self.initial_transformation(qap)
         if self.message_passing_net:

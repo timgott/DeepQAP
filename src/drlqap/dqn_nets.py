@@ -70,3 +70,30 @@ def simple_link_prediction_undirected(embedding_size, hidden_channels, depth):
     )
 
 
+def mp_gat_no_lp(hidden_channels, edge_embedding_size, node_embedding_size, depth):
+    # Edge encoder. Concatenates weights in both direction
+    # before passing to NN.
+    edge_embedding_net = nn.BidirectionalDense(
+        nn.FullyConnected(
+            2, hidden_channels, edge_embedding_size,
+            depth=depth, activation=ELU
+        )
+    )
+
+    # summed edge embedding -> node embedding after initialization
+    initial_node_embedding_net = nn.FullyConnected(
+        edge_embedding_size, hidden_channels, node_embedding_size,
+        depth=depth, activation=ELU
+    )
+
+    # Message passing node embedding net
+    message_passing_net = nn.GAT(node_embedding_size, hidden_channels, edge_embedding_size)
+
+    return nn.ReinforceNet(
+        edge_encoder=edge_embedding_net,
+        initial_node_encoder=initial_node_embedding_net,
+        message_passing_net=message_passing_net,
+        link_probability_net=None
+    )
+
+
