@@ -241,6 +241,23 @@ traitlets = ">=5.1.0,<6.0"
 test = ["pytest (!=5.3.4)", "pytest-cov", "flaky", "ipyparallel"]
 
 [[package]]
+name = "ipympl"
+version = "0.8.5"
+description = "Matplotlib Jupyter Extension"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+ipython = "<8"
+ipython-genutils = "*"
+ipywidgets = ">=7.6.0,<8"
+matplotlib = ">=2.0.0,<4"
+numpy = "*"
+pillow = "*"
+traitlets = "<6"
+
+[[package]]
 name = "ipython"
 version = "7.30.1"
 description = "IPython: Productive Interactive Computing"
@@ -1238,7 +1255,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.8.0"
-content-hash = "028779575378f8d559a318f0794bad3416251416f694e6046e29436a6fb12dc4"
+content-hash = "eaa462f9a87299f3238f2ae27a62da9348cb0b877020843cec5a7919b0d0ca26"
 
 [metadata.files]
 appnope = [
@@ -1404,6 +1421,10 @@ iniconfig = [
 ipykernel = [
     {file = "ipykernel-6.6.0-py3-none-any.whl", hash = "sha256:82ded8919fa7f5483be2b6219c3b13380d93faab1fc49cc2cfcd10e9e24cc158"},
     {file = "ipykernel-6.6.0.tar.gz", hash = "sha256:3a227788216b43982d9ac28195949467627b0d16e6b8af9741d95dcaa8c41a89"},
+]
+ipympl = [
+    {file = "ipympl-0.8.5-py2.py3-none-any.whl", hash = "sha256:120a084d84e6a6a00fc39c73e10345dcd9855efb3fa6e774f3e72057a866715c"},
+    {file = "ipympl-0.8.5.tar.gz", hash = "sha256:bebc6b8b7177d6e9fbc02235060e3fe0ee758f3b00ec5b9c8398f8ede1c4c369"},
 ]
 ipython = [
     {file = "ipython-7.30.1-py3-none-any.whl", hash = "sha256:fc60ef843e0863dd4e24ab2bb5698f071031332801ecf8d1aeb4fb622056545c"},

@@ -252,7 +252,7 @@ def reset_click_callback():
 def qap_selected_callback(attr, old_path, path: str):
     global qap
     text = Path(path).read_text()
-    qap = GraphAssignmentProblem.from_qaplib_string(text, normalize=True)
+    qap = GraphAssignmentProblem.from_qaplib_string(text)
     reset_state()
 
 def checkpoint_slider_callback(attr, old_value, new_value):
