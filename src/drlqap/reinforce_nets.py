@@ -28,7 +28,7 @@ def mp_gat(hidden_channels, edge_embedding_size, node_embedding_size, depth):
         depth=depth, activation=ELU
     )
 
-    return nn.ReinforceNet(
+    return nn.PygReinforceNet(
         edge_encoder=edge_embedding_net,
         initial_node_encoder=initial_node_embedding_net,
         message_passing_net=message_passing_net,
@@ -47,7 +47,7 @@ def mp_histogram_gat(hidden_channels, embedding_size, depth):
         depth=depth, activation=ELU
     )
 
-    return nn.ReinforceNet(
+    return nn.PygReinforceNet(
         edge_encoder=histogram_encoder,
         initial_node_encoder=identity_encoder,
         message_passing_net=message_passing_net,
@@ -61,7 +61,7 @@ def link_prediction_only_undirected(embedding_size, hidden_channels, depth):
         depth=depth, activation=ELU
     )
 
-    return nn.ReinforceNet(
+    return nn.PygReinforceNet(
         edge_encoder=histogram_encoder,
         initial_node_encoder=identity_encoder,
         link_probability_net=link_probability_net,
@@ -86,7 +86,7 @@ def simple_node_embeddings_undirected(edge_embedding_size, node_embedding_size, 
         depth=depth, activation=ELU
     )
 
-    return nn.ReinforceNet(
+    return nn.PygReinforceNet(
         edge_encoder=histogram_encoder,
         initial_node_encoder=node_encoder,
         link_probability_net=link_probability_net,

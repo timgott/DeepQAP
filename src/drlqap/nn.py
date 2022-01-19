@@ -1,5 +1,5 @@
 import torch
-from torch.nn import Sequential
+from torch.nn import Sequential, ReLU, ModuleList, LayerNorm
 from torch_geometric.nn import TransformerConv, to_hetero, Linear, GATv2Conv
 import torch.nn.functional as F
 from torch_geometric.data import HeteroData
@@ -18,7 +18,7 @@ def concat_bidirectional(dense_edge_features: torch.Tensor) -> torch.Tensor:
     transposed = dense_edge_features.transpose(0, 1)
     return torch.cat((dense_edge_features, transposed), dim=2)
 
-def sum_incoming_edges(dense_edge_features: torch.Tensor):
+def aggregate_incoming_edges(dense_edge_features: torch.Tensor):
     return torch.sum(dense_edge_features, dim=0)
 
 def aggregate_outgoing_edges(dense_edge_features: torch.Tensor):
@@ -82,24 +82,27 @@ class GAT(torch.nn.Module):
         return x
 
 
-def FullyConnected(input_channels, hidden_channels, output_channels, depth, activation):
+def FullyConnected(input_channels, hidden_channels, output_channels, depth, activation, layer_norm=False):
     return FullyConnectedShaped(
         [input_channels] + [hidden_channels] * depth + [output_channels],
-        activation
+        activation,
+        layer_norm=layer_norm
     )
 
 
-def FullyConnectedShaped(shape, activation):
+def FullyConnectedShaped(shape, activation, layer_norm):
     layers = Sequential()
     for i, (inputs, outputs) in enumerate(zip(shape, shape[1:])):
         layers.add_module(f"linear[{i}]({inputs}->{outputs})", Linear(inputs, outputs))
+        if layer_norm:
+            layers.add_module(f"layernorm[{i}]", LayerNorm(outputs))
         layers.add_module(f"activation[{i}]", activation())
     return layers
 
 
-def FullyConnectedLinearOut(in_channels, hidden_channels, out_channels, depth, activation):
+def FullyConnectedLinearOut(in_channels, hidden_channels, out_channels, depth, activation, layer_norm=False):
     return Sequential(
-        FullyConnected(in_channels, hidden_channels, hidden_channels, depth-1, activation),
+        FullyConnected(in_channels, hidden_channels, hidden_channels, depth-1, activation, layer_norm=layer_norm),
         Linear(hidden_channels, out_channels)
     )
 
@@ -115,7 +118,7 @@ class BidirectionalDense(torch.nn.Module):
         # compute edge embedding vectors from weight values
         return self.inner(bidirectional_matrix)
 
-class ReinforceNet(torch.nn.Module):
+class PygReinforceNet(torch.nn.Module):
     def __init__(self, 
         edge_encoder,
         initial_node_encoder,
@@ -150,7 +153,7 @@ class ReinforceNet(torch.nn.Module):
 
     def aggregate_edges(self, edge_features):
         # aggregate edges and compute initial node embeddings
-        aggregated = sum_incoming_edges(edge_features)
+        aggregated = aggregate_incoming_edges(edge_features)
         node_features = self.initial_node_encoder(aggregated)
 
         return node_features
@@ -207,3 +210,133 @@ class ReinforceNet(torch.nn.Module):
             node_dict = hdata.x_dict
 
         return self.compute_link_probabilities(node_dict['a'], node_dict['b'])
+
+
+class ConvLayer(torch.nn.Module):
+    """
+    Transforms incoming edges with `edge_encoder`, 
+    aggregates them together with their source node 
+    and transforms the aggregated value with `tranformation`.
+    """
+    def __init__(self, edge_encoder, transformation, layer_norm=False) -> None:
+        super().__init__()
+
+        self.edge_encoder = edge_encoder
+        self.transformation = transformation
+        self.layer_norm = layer_norm
+
+    def forward(self, edges, neighbors):
+        assert(len(edges.shape) == 3)
+        assert(neighbors is None or len(neighbors.shape) == 2)
+        assert(neighbors is None or edges.shape[1] == neighbors.shape[0])
+
+        # Edge encodings
+        if neighbors is not None:
+            # e_ij = nn(E_ij || N_j)
+            n_j = neighbors.unsqueeze(0).expand((edges.shape[0], -1, -1))
+            e = self.edge_encoder(torch.cat((edges, n_j), dim=-1))
+        else:
+            # e_ij = nn(E_ij)
+            e = self.edge_encoder(edges)
+
+        # aggregate and transform
+        # n_ij = nn(sum_j(e_ij))
+        x = aggregate_incoming_edges(e)
+        if self.layer_norm:
+            normalized_shape = x.shape
+            assert(len(normalized_shape) == 2)
+            x = F.layer_norm(x, normalized_shape)
+        return self.transformation(x)
+
+
+class QapConvLayer(torch.nn.Module):
+    """
+    Applies ConvLayers for linear and quadratic edges.
+    Then transforms the sum (q + l + x) again, where q and l are 
+    the outputs of the ConvLayers and x is the old node embedding.
+    """
+    def __init__(self, edge_width, embedding_width, depth) -> None:
+        super().__init__()
+
+        # Size of embedding
+        w = embedding_width
+
+        self.q_conv = ConvLayer(
+            edge_encoder=FullyConnected(edge_width, w, w, depth, activation=ReLU, layer_norm=False),
+            transformation=FullyConnected(w, w, w, depth, activation=ReLU, layer_norm=False),
+            layer_norm=True
+        )
+
+        self.l_conv = ConvLayer(
+            edge_encoder=FullyConnected(edge_width, w, w, depth, activation=ReLU, layer_norm=False),
+            transformation=FullyConnected(w, w, w, depth, activation=ReLU, layer_norm=False),
+            layer_norm=True
+        )
+
+        self.combined_transformation = FullyConnected(w, w, w, depth, activation=ReLU, layer_norm=False)
+
+
+    def forward(self, a_to_a, a_to_b, a, b) -> torch.Tensor:
+        # Quadratic encoding
+        q = self.q_conv(a_to_a, a)
+
+        # Linear encoding
+        l = self.l_conv(a_to_b, b)
+
+        # Combined value
+        if a is not None:
+            c = q + l + a
+        else:
+            c = q + l
+
+        return self.combined_transformation(c)
+
+
+
+class DenseQAPNet(torch.nn.Module):
+    """
+    Applies multiple QapConvLayers to a QAP.
+    """
+
+    def __init__(self, embedding_width, encoder_depth, conv_depth) -> None:
+        super().__init__()
+
+        w = embedding_width
+        self.a_layers = ModuleList(
+            [QapConvLayer(1, w, encoder_depth)] +
+            [QapConvLayer(1 + w, w, encoder_depth) for _ in range(conv_depth - 1)],
+        )
+        self.b_layers = ModuleList(
+            [QapConvLayer(1, w, encoder_depth)] +
+            [QapConvLayer(1 + w, w, encoder_depth) for _ in range(conv_depth - 1)],
+        )
+        self.link_probability_net = FullyConnectedLinearOut(w * 2, w, 1, 3, activation=ReLU)
+
+    def compute_link_values(self, embeddings_a, embeddings_b):
+        if self.link_probability_net:
+            concat_embedding_matrix = cartesian_product_matrix(embeddings_a, embeddings_b)
+            probs = self.link_probability_net(concat_embedding_matrix)
+            n, m = embeddings_a.size(0), embeddings_b.size(0)
+            return probs.reshape((n, m))
+        else:
+            return dot_product_matrix(embeddings_a, embeddings_b)
+
+    def forward(self, qap: QAP) -> torch.Tensor:
+        # TODO: support directed A and B by using concat_bidirectional
+        A = qap.A.unsqueeze(2) # Convert weights into 1-dim vectors
+        B = qap.B.unsqueeze(2)
+        L = qap.linear_costs.unsqueeze(2)
+
+        # Node embeddings
+        a = None
+        b = None
+
+        # Apply each conv layer
+        for layer_a, layer_b in zip(self.a_layers, self.b_layers):
+            new_a = layer_a(A, L, a, b)
+            new_b = layer_b(B, L.transpose(0, 1), b, a)
+
+            a = new_a
+            b = new_b
+
+        return self.compute_link_values(a, b)
