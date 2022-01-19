@@ -24,3 +24,26 @@ def test_concat_bidirectional():
     result = nn.concat_bidirectional(t)
 
     assert(torch.equal(result, expected))
+
+def test_dot_product():
+    t = torch.tensor([
+        [1, 2, 4],
+        [5, 6, 8]
+    ])
+    t2 = torch.tensor([
+        [3, 2, 1],
+        [0, 4, 5]
+    ])
+    expected = torch.tensor([
+        [
+            1*3 + 2*2 + 4*1,
+            1*0 + 2*4 + 4*5,
+        ],
+        [
+            5*3 + 6*2 + 8*1,
+            5*0 + 4*6 + 8*5
+        ],
+    ])
+    result = nn.dot_product_matrix(t, t2)
+    assert(torch.equal(result, expected))
+

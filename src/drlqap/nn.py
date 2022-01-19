@@ -1,5 +1,5 @@
 import torch
-from torch.nn import Sequential, ReLU, ModuleList, LayerNorm
+from torch.nn import Sequential, LeakyReLU, ModuleList, LayerNorm
 from torch_geometric.nn import TransformerConv, to_hetero, Linear, GATv2Conv
 import torch.nn.functional as F
 from torch_geometric.data import HeteroData
@@ -52,7 +52,8 @@ def bidirectional_edge_histogram_embeddings(connectivity, bins):
 # Create matrix where entry ij is cat(a_i,b_j)
 def cartesian_product_matrix(a, b):
     assert(a.shape == b.shape)
-    
+    assert(len(a.shape) == 2)
+
     n = a.shape[0]
 
     # Repeat a along dimension 1
@@ -90,7 +91,7 @@ def FullyConnected(input_channels, hidden_channels, output_channels, depth, acti
     )
 
 
-def FullyConnectedShaped(shape, activation, layer_norm):
+def FullyConnectedShaped(shape, activation, layer_norm=False):
     layers = Sequential()
     for i, (inputs, outputs) in enumerate(zip(shape, shape[1:])):
         layers.add_module(f"linear[{i}]({inputs}->{outputs})", Linear(inputs, outputs))
@@ -262,18 +263,18 @@ class QapConvLayer(torch.nn.Module):
         w = embedding_width
 
         self.q_conv = ConvLayer(
-            edge_encoder=FullyConnected(edge_width, w, w, depth, activation=ReLU, layer_norm=False),
-            transformation=FullyConnected(w, w, w, depth, activation=ReLU, layer_norm=False),
+            edge_encoder=FullyConnected(edge_width, w, w, depth, activation=LeakyReLU, layer_norm=False),
+            transformation=FullyConnected(w, w, w, 0, activation=LeakyReLU, layer_norm=False),
             layer_norm=True
         )
 
         self.l_conv = ConvLayer(
-            edge_encoder=FullyConnected(edge_width, w, w, depth, activation=ReLU, layer_norm=False),
-            transformation=FullyConnected(w, w, w, depth, activation=ReLU, layer_norm=False),
+            edge_encoder=FullyConnected(edge_width, w, w, depth, activation=LeakyReLU, layer_norm=False),
+            transformation=FullyConnected(w, w, w, 0, activation=LeakyReLU, layer_norm=False),
             layer_norm=True
         )
 
-        self.combined_transformation = FullyConnected(w, w, w, depth, activation=ReLU, layer_norm=False)
+        self.combined_transformation = FullyConnected(w, w, w, depth, activation=LeakyReLU, layer_norm=False)
 
 
     def forward(self, a_to_a, a_to_b, a, b) -> torch.Tensor:
@@ -310,7 +311,9 @@ class DenseQAPNet(torch.nn.Module):
             [QapConvLayer(1, w, encoder_depth)] +
             [QapConvLayer(1 + w, w, encoder_depth) for _ in range(conv_depth - 1)],
         )
-        self.link_probability_net = FullyConnectedLinearOut(w * 2, w, 1, 3, activation=ReLU)
+        self.a_norm = LayerNorm(w)
+        self.b_norm = LayerNorm(w)
+        self.link_probability_net = FullyConnectedLinearOut(w * 2, w, 1, 3, activation=LeakyReLU, layer_norm=False)
 
     def compute_link_values(self, embeddings_a, embeddings_b):
         if self.link_probability_net:
@@ -338,5 +341,8 @@ class DenseQAPNet(torch.nn.Module):
 
             a = new_a
             b = new_b
+
+        a = self.a_norm(a)
+        b = self.b_norm(b)
 
         return self.compute_link_values(a, b)
