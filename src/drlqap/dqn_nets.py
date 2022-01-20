@@ -146,8 +146,8 @@ def mp_gat_no_lp(hidden_channels, edge_embedding_size, node_embedding_size, dept
     )
 
 
-def dense(channels, encoder_depth, conv_depth=2):
+def dense(channels, encoder_depth, conv_depth=2, layer_norm=False):
     return nn.DenseQAPNet(
-        channels, encoder_depth, conv_depth
+        channels, encoder_depth, conv_depth, layer_norm
     )
 

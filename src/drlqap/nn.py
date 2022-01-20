@@ -243,10 +243,12 @@ class ConvLayer(torch.nn.Module):
         # aggregate and transform
         # n_ij = nn(sum_j(e_ij))
         x = aggregate_incoming_edges(e)
+
+        assert(len(x.shape) == 2)
         if self.layer_norm:
             normalized_shape = x.shape
-            assert(len(normalized_shape) == 2)
             x = F.layer_norm(x, normalized_shape)
+
         return self.transformation(x)
 
 
@@ -299,7 +301,7 @@ class DenseQAPNet(torch.nn.Module):
     Applies multiple QapConvLayers to a QAP.
     """
 
-    def __init__(self, embedding_width, encoder_depth, conv_depth) -> None:
+    def __init__(self, embedding_width, encoder_depth, conv_depth, use_layer_norm=True) -> None:
         super().__init__()
 
         w = embedding_width
@@ -311,14 +313,17 @@ class DenseQAPNet(torch.nn.Module):
             [QapConvLayer(1, w, encoder_depth)] +
             [QapConvLayer(1 + w, w, encoder_depth) for _ in range(conv_depth - 1)],
         )
-        self.a_norm = LayerNorm(w)
-        self.b_norm = LayerNorm(w)
+        if use_layer_norm:
+            self.pair_norm = LayerNorm(w*2)
+        else:
+            self.pair_norm = lambda x: x
         self.link_probability_net = FullyConnectedLinearOut(w * 2, w, 1, 3, activation=LeakyReLU, layer_norm=False)
 
     def compute_link_values(self, embeddings_a, embeddings_b):
         if self.link_probability_net:
-            concat_embedding_matrix = cartesian_product_matrix(embeddings_a, embeddings_b)
-            probs = self.link_probability_net(concat_embedding_matrix)
+            pairs = cartesian_product_matrix(embeddings_a, embeddings_b)
+            pairs = self.pair_norm(pairs)
+            probs = self.link_probability_net(pairs)
             n, m = embeddings_a.size(0), embeddings_b.size(0)
             return probs.reshape((n, m))
         else:
@@ -341,8 +346,5 @@ class DenseQAPNet(torch.nn.Module):
 
             a = new_a
             b = new_b
-
-        a = self.a_norm(a)
-        b = self.b_norm(b)
 
         return self.compute_link_values(a, b)
