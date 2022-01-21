@@ -1,8 +1,10 @@
+from torch.nn.functional import layer_norm
 from drlqap import reinforce_nets
 from drlqap.dqn import DQNAgent
 from drlqap.reinforce import ReinforceAgent
 from drlqap import dqn_nets
 from drlqap import utils
+import drlqap.nn
 
 agents = dict()
 
@@ -88,3 +90,39 @@ def dqn_dense():
         eps_decay=utils.decay_halflife(2000),
         eps_end=0
     )
+
+@define_agent_config
+def reinforce_dense():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True),
+        learning_rate=5e-4,
+    )
+
+@define_agent_config
+def reinforce_dense_slow():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True),
+        learning_rate=1e-4,
+    )
+
+@define_agent_config
+def reinforce_dense_3_0():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 0, 3, layer_norm=True),
+        learning_rate=5e-4,
+    )
+
+@define_agent_config
+def reinforce_dense_3_0_slower():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 0, 3, layer_norm=True),
+        learning_rate=1e-5,
+    )
+
+@define_agent_config
+def reinforce_dense_3_0_faster():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 0, 3, layer_norm=True),
+        learning_rate=1e-3,
+    )
+

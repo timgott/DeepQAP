@@ -258,7 +258,7 @@ class QapConvLayer(torch.nn.Module):
     Then transforms the sum (q + l + x) again, where q and l are 
     the outputs of the ConvLayers and x is the old node embedding.
     """
-    def __init__(self, edge_width, embedding_width, depth) -> None:
+    def __init__(self, edge_width, embedding_width, depth, conv_layer_norm=True) -> None:
         super().__init__()
 
         # Size of embedding
@@ -267,13 +267,13 @@ class QapConvLayer(torch.nn.Module):
         self.q_conv = ConvLayer(
             edge_encoder=FullyConnected(edge_width, w, w, depth, activation=LeakyReLU, layer_norm=False),
             transformation=FullyConnected(w, w, w, 0, activation=LeakyReLU, layer_norm=False),
-            layer_norm=True
+            layer_norm=conv_layer_norm
         )
 
         self.l_conv = ConvLayer(
             edge_encoder=FullyConnected(edge_width, w, w, depth, activation=LeakyReLU, layer_norm=False),
             transformation=FullyConnected(w, w, w, 0, activation=LeakyReLU, layer_norm=False),
-            layer_norm=True
+            layer_norm=conv_layer_norm
         )
 
         self.combined_transformation = FullyConnected(w, w, w, depth, activation=LeakyReLU, layer_norm=False)
@@ -301,17 +301,17 @@ class DenseQAPNet(torch.nn.Module):
     Applies multiple QapConvLayers to a QAP.
     """
 
-    def __init__(self, embedding_width, encoder_depth, conv_depth, use_layer_norm=True) -> None:
+    def __init__(self, embedding_width, encoder_depth, conv_depth, use_layer_norm=True, conv_layer_norm=True) -> None:
         super().__init__()
 
         w = embedding_width
         self.a_layers = ModuleList(
-            [QapConvLayer(1, w, encoder_depth)] +
-            [QapConvLayer(1 + w, w, encoder_depth) for _ in range(conv_depth - 1)],
+            [QapConvLayer(1, w, encoder_depth, conv_layer_norm=conv_layer_norm)] +
+            [QapConvLayer(1 + w, w, encoder_depth, conv_layer_norm=conv_layer_norm) for _ in range(conv_depth - 1)],
         )
         self.b_layers = ModuleList(
-            [QapConvLayer(1, w, encoder_depth)] +
-            [QapConvLayer(1 + w, w, encoder_depth) for _ in range(conv_depth - 1)],
+            [QapConvLayer(1, w, encoder_depth, conv_layer_norm=conv_layer_norm)] +
+            [QapConvLayer(1 + w, w, encoder_depth, conv_layer_norm=conv_layer_norm) for _ in range(conv_depth - 1)],
         )
         if use_layer_norm:
             self.pair_norm = LayerNorm(w*2)
