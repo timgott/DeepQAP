@@ -347,4 +347,8 @@ class DenseQAPNet(torch.nn.Module):
             a = new_a
             b = new_b
 
+        # Store embeddings for debugging
+        self.embeddings_a = a
+        self.embeddings_b = b
+
         return self.compute_link_values(a, b)

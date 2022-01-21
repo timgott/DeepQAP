@@ -39,21 +39,10 @@ class AgentState:
     def compute_net_state(self):
         with torch.no_grad():
             qap = self.env.get_state()
-            if qap.size == 1:
-                return torch.tensor([[1.]])
-            elif qap.size == 0:
-                return torch.tensor([[]])
             net = self.agent.policy_net
-            hdata = net.initial_transformation(qap)
-            self.net_base_state = (hdata.x_dict['a'], hdata.x_dict['b'])
-            if net.message_passing_net:
-                node_dict = net.message_passing_net(hdata.x_dict, hdata.edge_index_dict, hdata.edge_attr_dict)
-            else:
-                node_dict = hdata.x_dict
-            self.net_state = (node_dict['a'], node_dict['b'])
-
-    def compute_probabilities(self):
-        return self.agent.policy_net(self.env.get_state())
+            probs = net(qap)
+            self.probs = probs
+            self.embeddings = (net.embeddings_a, net.embeddings_b)
 
     def assignment_step(self, a, b):
         try:
@@ -178,14 +167,10 @@ logit_figure = create_matrix_plot(
 node_embedding_figures = [
     (
         create_matrix_plot(
-            title=f"Node embeddings of graph {i} before message passing", 
+            title=f"Node embeddings of graph {i}", 
             i_column='i', j_column='j', value_column='base',
             source=source
         ),
-        create_matrix_plot(
-            title=f"Node embeddings of graph {i}", 
-            i_column='i', j_column='j', value_column='mp',
-            source=source),
     )
     for i, source in enumerate(node_embedding_sources)
 ]
@@ -216,7 +201,7 @@ def update_probability_matrix():
                 log_probs = policy.distribution.logits.numpy()
                 indices = np.indices(policy.shape)
             else:
-                probs2d = state.compute_probabilities().numpy()
+                probs2d = state.probs.numpy()
                 probs = probs2d.flatten()
                 indices = np.indices(probs2d.shape)
                 log_probs = probs
@@ -228,12 +213,11 @@ def update_probability_matrix():
             b=nodes_b[indices[1].ravel()]
         )
 
-def update_node_embedding_matrix(base_embeddings, mp_embeddings, data_source):
-    indices = np.indices(base_embeddings.shape)
+def update_node_embedding_matrix(embeddings, data_source):
+    indices = np.indices(embeddings.shape)
 
     data_source.data =  dict(
-        base = flatten_tensor(base_embeddings),
-        mp = flatten_tensor(mp_embeddings),
+        base = flatten_tensor(embeddings),
         i = indices[0].ravel(),
         j = indices[1].ravel(),
     )
@@ -242,7 +226,7 @@ def state_updated():
     update_probability_matrix()
     for i in (0,1):
         update_node_embedding_matrix(
-            state.net_base_state[i], state.net_state[i],
+            state.embeddings[i],
             data_source=node_embedding_sources[i]
         )
 
