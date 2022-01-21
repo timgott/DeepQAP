@@ -76,5 +76,8 @@ def argmax2d(x):
     max_index = torch.argmax(x)
     return np.unravel_index(max_index, shape=x.shape)
 
-def exp_halflife(x):
-    return math.log(2) * x
+def decay_halflife(n):
+    return decay_through(n, 0.5)
+
+def decay_through(n, v):
+    return -math.log(v) / n

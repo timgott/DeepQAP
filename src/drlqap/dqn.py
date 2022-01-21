@@ -29,18 +29,18 @@ class ReplayMemory(object):
 class DQNAgent:
     def __init__(self,
             policy_net,
-            batch_size = 128,
+            batch_size = 16,
             gamma = 0.999,
             eps_start = 0.9,
             eps_end = 0.05,
-            eps_decay = 2000,
-            policy_update_every = 10,
+            eps_decay = 0.0005,
+            policy_update_every = 1,
             target_update_every = 100,
-            learning_rate = 1e-2
+            learning_rate = 1e-3
         ) -> None:
         self.policy_net = policy_net
         self.target_net = copy.deepcopy(policy_net)
-        self.optimizer = torch.optim.RMSprop(
+        self.optimizer = torch.optim.Adam(
             policy_net.parameters(), 
             lr=learning_rate
         )
@@ -57,7 +57,7 @@ class DQNAgent:
 
     def compute_epsilon(self, i):
         return self.eps_end + (self.eps_start - self.eps_end) * \
-            math.exp(-1. * i / self.eps_decay)
+            math.exp(-1. * i * self.eps_decay)
 
     def optimize_policy(self):
         if len(self.memory) < self.batch_size:

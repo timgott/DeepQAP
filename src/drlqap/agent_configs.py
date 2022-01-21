@@ -60,7 +60,7 @@ def dqn_gat_histogram_low_epsilon():
     return DQNAgent(
         dqn_nets.mp_histogram_gat(64,32,3),
         learning_rate=1e-3,
-        eps_decay=utils.exp_halflife(1000)
+        eps_decay=utils.decay_halflife(1000)
     )
 
 @define_agent_config
@@ -68,7 +68,7 @@ def dqn_simple_lp():
     return DQNAgent(
         dqn_nets.simple_link_prediction_undirected(64,32,3),
         learning_rate=1e-3,
-        eps_decay=utils.exp_halflife(2000)
+        eps_decay=utils.decay_halflife(2000)
     )
 
 @define_agent_config
@@ -76,6 +76,15 @@ def dqn_gat_no_lp():
     return DQNAgent(
         dqn_nets.mp_gat_no_lp(64,32,32,3),
         learning_rate=1e-3,
-        eps_decay=utils.exp_halflife(2000),
+        eps_decay=utils.decay_halflife(2000),
+        eps_end=0
+    )
+
+@define_agent_config
+def dqn_dense():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True),
+        learning_rate=5e-4,
+        eps_decay=utils.decay_halflife(2000),
         eps_end=0
     )
