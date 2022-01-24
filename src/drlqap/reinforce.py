@@ -72,19 +72,19 @@ class ReinforceAgent:
             loss.backward()
             self.optimizer.step()
 
-        # Training statistics
-        gradient_magnitude = 0
-        for param in self.policy_net.parameters():
-            if param.grad is not None:
-                gradient_magnitude += torch.norm(param.grad).item()
-
         self.episode_stats = {
-                "value": env.reward_sum,
-                "entropy_average": np.mean(entropies),
-                "episode_entropies": np.array(entropies),
-                "gradient_magnitude": gradient_magnitude
-                }
+            "value": env.reward_sum,
+            "entropy_average": np.mean(entropies),
+            "episode_entropies": np.array(entropies),
+        }
 
+        # Training statistics
+        for name, param in self.policy_net.named_parameters():
+            if param.grad is not None:
+                gradient_magnitude = torch.norm(param.grad).item()
+            else:
+                gradient_magnitude = 0
+            self.episode_stats["gradient_" + name] = gradient_magnitude
 
     def solve_and_learn(self, qap: QAP):
         env = QAPEnv(qap)

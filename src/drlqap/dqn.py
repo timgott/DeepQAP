@@ -125,11 +125,13 @@ class DQNAgent:
                 self.target_net.load_state_dict(self.policy_net.state_dict())
 
             # Training statistics
-            gradient_magnitude = 0
-            for param in self.policy_net.parameters():
+            for name, param in self.policy_net.named_parameters():
                 if param.grad is not None:
-                    gradient_magnitude += torch.norm(param.grad).item()
-            self.episode_stats["gradient_magnitude"] = gradient_magnitude
+                    gradient_magnitude = torch.norm(param.grad).item()
+                else:
+                    gradient_magnitude = 0
+                self.episode_stats["gradient_" + name] = gradient_magnitude
+
 
     def solve_and_learn(self, qap: QAP):
         env = QAPEnv(qap)
