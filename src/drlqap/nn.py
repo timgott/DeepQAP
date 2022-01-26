@@ -242,7 +242,7 @@ class ConvLayer(torch.nn.Module):
 
         # aggregate and transform
         # n_ij = nn(sum_j(e_ij))
-        x = aggregate_incoming_edges(e)
+        x = aggregate_outgoing_edges(e)
 
         assert(len(x.shape) == 2)
         if self.layer_norm:
