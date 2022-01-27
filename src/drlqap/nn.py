@@ -219,12 +219,13 @@ class ConvLayer(torch.nn.Module):
     aggregates them together with their source node 
     and transforms the aggregated value with `tranformation`.
     """
-    def __init__(self, edge_encoder, transformation, layer_norm=False) -> None:
+    def __init__(self, edge_encoder, transformation, layer_norm=False, aggregation='sum') -> None:
         super().__init__()
 
         self.edge_encoder = edge_encoder
         self.transformation = transformation
         self.layer_norm = layer_norm
+        self.aggregation = aggregation
 
     def forward(self, edges, neighbors):
         assert(len(edges.shape) == 3)
@@ -242,7 +243,16 @@ class ConvLayer(torch.nn.Module):
 
         # aggregate and transform
         # n_ij = nn(sum_j(e_ij))
-        x = aggregate_outgoing_edges(e)
+        if self.aggregation == 'sum':
+            x = torch.sum(e, dim=1)
+        elif self.aggregation == 'mean':
+            x = torch.mean(e, dim=1)
+        elif self.aggregation == 'min':
+            x = torch.min(e, dim=1)[0]
+        elif self.aggregation == 'max':
+            x = torch.max(e, dim=1)[0]
+        else:
+            raise ValueError(f"Invalid aggregation {self.aggregation}")
 
         assert(len(x.shape) == 2)
         if self.layer_norm:
@@ -258,7 +268,7 @@ class QapConvLayer(torch.nn.Module):
     Then transforms the sum (q + l + x) again, where q and l are 
     the outputs of the ConvLayers and x is the old node embedding.
     """
-    def __init__(self, edge_width, embedding_width, depth, conv_layer_norm=True) -> None:
+    def __init__(self, edge_width, embedding_width, depth, conv_layer_norm=True, q_aggr='sum', l_aggr='sum') -> None:
         super().__init__()
 
         # Size of embedding
@@ -267,13 +277,15 @@ class QapConvLayer(torch.nn.Module):
         self.q_conv = ConvLayer(
             edge_encoder=FullyConnected(edge_width, w, w, depth, activation=LeakyReLU, layer_norm=False),
             transformation=FullyConnected(w, w, w, 0, activation=LeakyReLU, layer_norm=False),
-            layer_norm=conv_layer_norm
+            layer_norm=conv_layer_norm,
+            aggregation=q_aggr
         )
 
         self.l_conv = ConvLayer(
             edge_encoder=FullyConnected(edge_width, w, w, depth, activation=LeakyReLU, layer_norm=False),
             transformation=FullyConnected(w, w, w, 0, activation=LeakyReLU, layer_norm=False),
-            layer_norm=conv_layer_norm
+            layer_norm=conv_layer_norm,
+            aggregation=l_aggr
         )
 
         self.combined_transformation = FullyConnected(w, w, w, depth, activation=LeakyReLU, layer_norm=False)
@@ -301,17 +313,18 @@ class DenseQAPNet(torch.nn.Module):
     Applies multiple QapConvLayers to a QAP.
     """
 
-    def __init__(self, embedding_width, encoder_depth, conv_depth, use_layer_norm=True, conv_layer_norm=True) -> None:
+    def __init__(self, embedding_width, encoder_depth, conv_depth, use_layer_norm, conv_layer_norm, q_aggr, l_aggr) -> None:
         super().__init__()
 
         w = embedding_width
+        conv_kwargs = dict(conv_layer_norm=conv_layer_norm, q_aggr=q_aggr, l_aggr=l_aggr)
         self.a_layers = ModuleList(
-            [QapConvLayer(1, w, encoder_depth, conv_layer_norm=conv_layer_norm)] +
-            [QapConvLayer(1 + w, w, encoder_depth, conv_layer_norm=conv_layer_norm) for _ in range(conv_depth - 1)],
+            [QapConvLayer(1, w, encoder_depth, **conv_kwargs)] +
+            [QapConvLayer(1 + w, w, encoder_depth, **conv_kwargs) for _ in range(conv_depth - 1)],
         )
         self.b_layers = ModuleList(
-            [QapConvLayer(1, w, encoder_depth, conv_layer_norm=conv_layer_norm)] +
-            [QapConvLayer(1 + w, w, encoder_depth, conv_layer_norm=conv_layer_norm) for _ in range(conv_depth - 1)],
+            [QapConvLayer(1, w, encoder_depth, **conv_kwargs)] +
+            [QapConvLayer(1 + w, w, encoder_depth, **conv_kwargs) for _ in range(conv_depth - 1)],
         )
         if use_layer_norm:
             self.pair_norm = LayerNorm(w*2)

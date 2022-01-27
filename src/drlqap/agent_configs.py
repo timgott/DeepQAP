@@ -92,9 +92,28 @@ def dqn_dense():
     )
 
 @define_agent_config
+def dqn_dense_learnmore():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True),
+        learning_rate=5e-4,
+        eps_decay=utils.decay_halflife(2000),
+        eps_end=0,
+        batch_size=128
+    )
+
+@define_agent_config
 def dqn_dense_3_0():
     return DQNAgent(
         dqn_nets.dense(32, 0, 3, layer_norm=True),
+        learning_rate=5e-4,
+        eps_decay=utils.decay_halflife(2000),
+        eps_end=0
+    )
+
+@define_agent_config
+def dqn_dense_max():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, l_aggr='min', q_aggr='max'),
         learning_rate=5e-4,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0
