@@ -54,39 +54,39 @@ class MatrixDataSource():
         self.data_source.data = data
 
 
-    def create_plot(self, title, data_column=None, low=None, high=None):
-        if len(self.value_columns) == 1:
-            data_column = self.value_columns[0]
-        elif data_column not in self.value_columns:
-            raise ValueError(f"data_column={data_column} not in {self.value_columns}")
+def create_matrix_plot(source: MatrixDataSource, title, data_column=None, low=None, high=None):
+    if len(source.value_columns) == 1:
+        data_column = source.value_columns[0]
+    elif data_column not in source.value_columns:
+        raise ValueError(f"data_column={data_column} not in {source.value_columns}")
 
-        colormap = LinearColorMapper(Viridis256, low=low, high=high)
-        fig = figure(
-            title=title, 
-            tools="hover",
-            toolbar_location=None,
-            tooltips=[
-                (data_column, "@" + data_column),
-                (self.i_column, "@" + self.i_column),
-                (self.j_column, "@" + self.j_column)
-            ],
-            x_axis_location="above",
-            x_axis_label=self.j_column,
-            y_axis_label=self.i_column
-        )
+    colormap = LinearColorMapper(Viridis256, low=low, high=high)
+    fig = figure(
+        title=title, 
+        tools="hover",
+        toolbar_location=None,
+        tooltips=[
+            (data_column, "@" + data_column),
+            (source.i_column, "@" + source.i_column),
+            (source.j_column, "@" + source.j_column)
+        ],
+        x_axis_location="above",
+        x_axis_label=source.j_column,
+        y_axis_label=source.i_column
+    )
 
-        fig.axis.ticker = SingleIntervalTicker(interval=1, num_minor_ticks=0)
-        fig.x_range.range_padding = 0
-        fig.y_range.range_padding = 0
-        fig.y_range.flipped = True
-        fig.grid.visible = True
+    fig.axis.ticker = SingleIntervalTicker(interval=1, num_minor_ticks=0)
+    fig.x_range.range_padding = 0
+    fig.y_range.range_padding = 0
+    fig.y_range.flipped = True
+    fig.grid.visible = True
 
-        fig.rect(
-            x=self.j_column, y=self.i_column,
-            color=transform(data_column, colormap), 
-            source=self.data_source,
-            width=1, height=1,
-        )
+    fig.rect(
+        x=source.j_column, y=source.i_column,
+        color=transform(data_column, colormap), 
+        source=source.data_source,
+        width=1, height=1,
+    )
 
-        return fig
+    return fig
 
