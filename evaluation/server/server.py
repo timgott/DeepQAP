@@ -6,19 +6,19 @@ from bokeh.events import Tap
 
 from bokeh.layouts import column, gridplot, row
 from bokeh.models import Button, Select, ColumnDataSource, Slider, LinearColorMapper, Div
-from bokeh.models.tickers import SingleIntervalTicker
 from bokeh.plotting import curdoc, figure
 from bokeh.transform import transform
 from bokeh.palettes import Viridis256
 import numpy as np
 import torch
-from torch._C import dtype
-from torch.distributions.categorical import Categorical
+import bottleneck
 
 from drlqap.evaltools import load_checkpoints, load_float_txt
 from drlqap.qap import GraphAssignmentProblem
 from drlqap.qapenv import QAPEnv
 from drlqap.reinforce import Categorical2D, ReinforceAgent
+
+from matrix import MatrixDataSource
 
 agent_folders = list(Path("runs").iterdir())
 qap_files = list(Path("qapdata").glob("*.dat"))
@@ -29,7 +29,7 @@ class AgentState:
         self.env = QAPEnv(qap)
         self.compute_net_state()
 
-    def has_policy(self):
+    def has_policy_distribution(self):
         return hasattr(self.agent, "get_policy")
 
     def get_policy(self):
@@ -66,20 +66,25 @@ state: AgentState = None
 training_results = ColumnDataSource(data=dict(episode=[], value=[], entropy=[], gradient=[]))
 
 # matrix data
-probability_matrix_source = ColumnDataSource(dict(a=[], b=[], p=[], l=[]))
+probability_matrix_source = MatrixDataSource('a', 'b', ['p', 'l'])
 node_embedding_sources = (
-    ColumnDataSource(dict(i=[], j=[], base=[], mp=[])),
-    ColumnDataSource(dict(i=[], j=[], base=[], mp=[]))
+    MatrixDataSource('i', 'j', ['base']),
+    MatrixDataSource('i', 'j', ['base']),
 )
 
 # data loaders
 def update_experiment(path):
     # Plot values during training
-    values = load_float_txt(path / "value.txt")
-    entropies = load_float_txt(path / "entropy_average.txt")
-    gradients = load_float_txt(path / "gradient_magnitude.txt")
-    episodes = list(range(0, len(values)))
-    training_results.data = dict(episode=episodes, value=values, entropy=entropies, gradient=gradients)
+    value = load_float_txt(path / "value.txt")
+    value_mean = bottleneck.move_mean(value, window=200)
+    value_median = bottleneck.move_median(value, window=200)
+    episodes = list(range(0, len(value)))
+    training_results.data = dict(
+        episode=episodes,
+        value=value,
+        value_mean=value_mean,
+        value_median=value_median
+    )
 
 def update_callback():
     update_experiment(experiment_path)
@@ -117,118 +122,49 @@ agent_dropdown = path_select("Agent", agent_folders, agent_selected_callback)
 
 # Plot training results
 value_plot = figure(title="Training assignment values")
-value_plot.scatter(x='episode', y='value', source=training_results)
+value_plot.cross(x='episode', y='value', source=training_results, alpha=0.6)
+value_plot.line(x='episode', y='value_median', source=training_results, color="green", line_width=2)
+value_plot.line(x='episode', y='value_mean', source=training_results, color="red", line_width=2)
 
-entropy_plot = figure(title="Average policy entropy per episode during training")
-entropy_plot.scatter(x='episode', y='entropy', source=training_results)
-
-plot_layout = column(value_plot, entropy_plot)
-
-# QAP test runs
-def create_matrix_plot(title, i_column, j_column, value_column, source, low=None, high=None):
-    colormap = LinearColorMapper(Viridis256, low=low, high=high)
-    fig = figure(
-        title=title, 
-        tools="hover",
-        toolbar_location=None,
-        tooltips=[(value_column, "@" + value_column), (i_column, "@" + i_column), (j_column, "@" + j_column)],
-        x_axis_location="above",
-        x_axis_label=j_column,
-        y_axis_label=i_column
-    )
-
-    fig.axis.ticker = SingleIntervalTicker(interval=1, num_minor_ticks=0)
-    fig.x_range.range_padding = 0
-    fig.y_range.range_padding = 0
-    fig.y_range.flipped = True
-    fig.grid.visible = True
-
-    fig.rect(
-        x=j_column, y=i_column,
-        color=transform(value_column, colormap), 
-        source=source,
-        width=1, height=1,
-    )
-
-    return fig
-
-probability_figure = create_matrix_plot(
-    title="Assignment probability",
-    i_column="a", j_column="b", value_column="p", 
-    source=probability_matrix_source, low=0.0, high=1.0
+plot_layout = value_plot
+probability_figure = probability_matrix_source.create_plot(
+    title="Assignment probability", data_column="p", low=0.0, high=1.0
 )
 
-logit_figure = create_matrix_plot(
-    title="Assignment logit probability",
-    i_column="a", j_column="b", value_column="l", 
-    source=probability_matrix_source
+logit_figure = probability_matrix_source.create_plot(
+    title="Assignment logit probability", data_column="l", 
 )
 
 node_embedding_figures = [
-    (
-        create_matrix_plot(
-            title=f"Node embeddings of graph {i}", 
-            i_column='i', j_column='j', value_column='base',
-            source=source
-        ),
-    )
+    source.create_plot(title=f"Node embeddings of graph {i}")
     for i, source in enumerate(node_embedding_sources)
 ]
 
 agent_state_layout = column(
     row(probability_figure, logit_figure),
-    gridplot(node_embedding_figures, width=600, height=400),
+    row(*node_embedding_figures, width=600, height=400),
 )
 
 def flatten_tensor(m: torch.Tensor) -> np.ndarray:
     return m.ravel().numpy()
 
-def update_probability_matrix():
-    if not state.env.unassigned_a:
-        probability_matrix_source.data = dict(
-            p = [],
-            l = [],
-            a = [],
-            b = []
-        )
-    else:
-        nodes_a = np.array(state.env.unassigned_a)
-        nodes_b = np.array(state.env.unassigned_b)
-        with torch.no_grad():
-            if state.has_policy():
-                policy = state.get_policy()
-                probs = policy.distribution.probs.numpy()
-                log_probs = policy.distribution.logits.numpy()
-                indices = np.indices(policy.shape)
-            else:
-                probs2d = state.probs.numpy()
-                probs = probs2d.flatten()
-                indices = np.indices(probs2d.shape)
-                log_probs = probs
-        
-        probability_matrix_source.data = dict(
-            p = probs,
-            l = log_probs,
-            a=nodes_a[indices[0].ravel()],
-            b=nodes_b[indices[1].ravel()]
-        )
-
-def update_node_embedding_matrix(embeddings, data_source):
-    indices = np.indices(embeddings.shape)
-
-    data_source.data =  dict(
-        base = flatten_tensor(embeddings),
-        i = indices[0].ravel(),
-        j = indices[1].ravel(),
-    )
-
 def state_updated():
-    update_probability_matrix()
+    nodes_a = state.env.unassigned_a
+    nodes_b = state.env.unassigned_b
+    with torch.no_grad():
+        if state.has_policy_distribution():
+            policy = state.get_policy()
+            probs = policy.distribution.probs
+            log_probs = policy.distribution.logits
+        else:
+            probs = state.probs
+            log_probs = probs
+
+    probability_matrix_source.set_data(a=nodes_a, b=nodes_b, p=probs, l=log_probs)
+
     for i in (0,1):
-        update_node_embedding_matrix(
-            state.embeddings[i],
-            data_source=node_embedding_sources[i]
-        )
+        data_source = node_embedding_sources[i]
+        data_source.set_data(base=state.embeddings[i])
 
 def reset_click_callback():
     reset_state()
