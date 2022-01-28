@@ -1,10 +1,3 @@
-from typing import Callable
-
-import torch
-from drlqap.qap import GraphAssignmentProblem
-import random
-import os
-
 class StatsCollector:
     def __init__(self, path) -> None:
         self.path = path
@@ -30,7 +23,7 @@ class StatsCollector:
 
 
 class Trainer:
-    def __init__(self, agent, problem_generator: Callable[[], GraphAssignmentProblem], stats_collector):
+    def __init__(self, agent, problem_generator, stats_collector):
         self.agent = agent
         self.problem_generator = problem_generator
         self.stats_collector = stats_collector
@@ -44,7 +37,7 @@ class Trainer:
         try:
             for i in range(steps):
                 # Generate Problem
-                qap = self.problem_generator()
+                qap = self.problem_generator.sample()
 
                 # Let agent learn on problem
                 self.agent.solve_and_learn(qap)

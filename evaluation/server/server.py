@@ -75,7 +75,7 @@ plot_layout = value_plot
 # Agent tester
 def qap_selected_callback(attr, old_name, name: str):
     if name:
-        qap = drlqap.taskgenerators.generators[name]()
+        qap = drlqap.taskgenerators.generators[name]().sample()
         agent_state.set_qap(qap)
 
 def checkpoint_selected_callback(attr, old_name, name: str):

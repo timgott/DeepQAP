@@ -3,7 +3,7 @@ from pathlib import Path
 from drlqap.taskgenerators import generators as tasks
 import logging
 import sys
-from drlqap.agent_configs import agents
+from drlqap.agent_configs import agents, agent_training_steps
 import numpy as np
 import torch
 import random
@@ -18,7 +18,7 @@ def create_experiment_folder(path: Path):
         except FileExistsError:
             counter += 1 # First duplicate gets _2
             path = path.with_name(f"{basename}_{counter}")
-    
+
     return path
 
 def train_agent(agent, problem_generator, experiment_path, training_steps, checkpoint_every):
@@ -60,7 +60,8 @@ def main():
         print(f"Unknown task generator '{task_name}'")
 
     agent = agents[agent_name]()
-    problem_generator = tasks[task_name]
+    problem_generator = tasks[task_name]()
+    training_steps = agent_training_steps[agent_name]
 
     experiment_path = create_experiment_folder(Path(experiment_path)) 
     print(f"Output folder: {experiment_path}")
@@ -71,10 +72,10 @@ def main():
     with open(experiment_path / 'trainingtask', 'x') as f:
         f.write(task_name)
 
-    train_agent(agent, 
+    train_agent(agent,
         problem_generator=problem_generator,
         experiment_path=experiment_path,
-        training_steps=10000,
+        training_steps=training_steps,
         checkpoint_every=1000
     )
     return 0
