@@ -120,6 +120,15 @@ def dqn_dense_max():
     )
 
 @define_agent_config
+def dqn_dense_no_c():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, combined_transform=False),
+        learning_rate=5e-4,
+        eps_decay=utils.decay_halflife(2000),
+        eps_end=0
+    )
+
+@define_agent_config
 def reinforce_dense():
     return ReinforceAgent(
         dqn_nets.dense(32, 1, 2, layer_norm=True),
