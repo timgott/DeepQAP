@@ -27,7 +27,7 @@ agent_state = AgentStateViewModel()
 training_results = ColumnDataSource(data=dict(episode=[], value=[], entropy=[], gradient=[]))
 
 # data loaders
-def update_experiment(path):
+def update_experiment_data(path):
     # Plot values during training
     value = load_float_txt(path / "value.txt")
     value_mean = bottleneck.move_mean(value, window=200)
@@ -40,17 +40,20 @@ def update_experiment(path):
         value_median=value_median
     )
 
-def update_callback():
-    update_experiment(experiment_path)
+def update_selected_agent():
+    agent = checkpoints[checkpoint_slider.value]
+    agent_name_text.text = agent.checkpoint_name
+    agent_state.set_agent(agent)
 
 # add a load_button widget and configure with the call back
 def agent_selected_callback(attr, old_path, path: str):
     global checkpoints, experiment_path, checkpoint_slider
     experiment_path = Path(path)
     checkpoints = load_checkpoints(experiment_path)
-    checkpoint_slider.value = 0
     checkpoint_slider.end = len(checkpoints)-1
-    update_experiment(experiment_path)
+    checkpoint_slider.value = checkpoint_slider.end
+    update_experiment_data(experiment_path)
+    update_selected_agent()
 
 def path_select(title, paths, callback):
     options = [(str(f), f.name) for f in paths]
@@ -75,15 +78,12 @@ def qap_selected_callback(attr, old_name, name: str):
         qap = drlqap.taskgenerators.generators[name]()
         agent_state.set_qap(qap)
 
-def checkpoint_slider_callback(attr, old_value, new_value):
-    assert(checkpoints)
-    agent = checkpoints[checkpoint_slider.value]
-    agent_name_text.text = agent.checkpoint_name
-    agent_state.set_agent(agent)
+def checkpoint_selected_callback(attr, old_name, name: str):
+    update_selected_agent()
 
 checkpoint_slider = Slider(title="Checkpoint", start=0, end=1, step=1, value=0)
 agent_name_text = Div()
-checkpoint_slider.on_change("value", checkpoint_slider_callback)
+checkpoint_slider.on_change("value", checkpoint_selected_callback)
 
 qaps_dropdown = Select(title="QAPLIB Problem", options=qap_generator_names, value=qap_generator_names[0])
 qaps_dropdown.on_change("value", qap_selected_callback)
@@ -124,6 +124,5 @@ logit_figure.on_event(Tap, matrix_tapped)
 curdoc().add_root(column(agent_dropdown, plot_layout, qap_insight_layout))
 
 # Select first agent
-agent_selected_callback("value", None, agent_dropdown.value)
 qap_selected_callback("value", None, qaps_dropdown.value)
-checkpoint_slider_callback("value", None, checkpoint_slider.value)
+agent_selected_callback("value", None, agent_dropdown.value)

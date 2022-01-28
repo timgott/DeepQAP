@@ -61,8 +61,10 @@ class AgentStateViewModel:
         with torch.no_grad():
             if state.has_policy_distribution():
                 policy = state.get_policy()
-                probs = policy.distribution.probs
-                log_probs = policy.distribution.logits
+                n = len(nodes_a)
+                m = len(nodes_b)
+                probs = policy.distribution.probs.reshape(n, m)
+                log_probs = policy.distribution.logits.reshape(n, m)
             else:
                 probs = state.probs
                 log_probs = probs
