@@ -143,6 +143,33 @@ def dqn_dense_no_c_long():
     )
 
 @define_agent_config()
+def dqn_dense_bn():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='batch_norm'),
+        learning_rate=5e-4,
+        eps_decay=utils.decay_halflife(2000),
+        eps_end=0
+    )
+
+@define_agent_config()
+def dqn_dense_bn_lr_up():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='batch_norm'),
+        learning_rate=5e-3,
+        eps_decay=utils.decay_halflife(2000),
+        eps_end=0
+    )
+
+@define_agent_config()
+def dqn_dense_kmn():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='keep_mean'),
+        learning_rate=5e-4,
+        eps_decay=utils.decay_halflife(2000),
+        eps_end=0
+    )
+
+@define_agent_config()
 def reinforce_dense():
     return ReinforceAgent(
         dqn_nets.dense(32, 1, 2, layer_norm=True),

@@ -39,6 +39,10 @@ class QAPEnv:
         self.assignment[a] = b
 
         subproblem = self.remaining_qap.create_subproblem_for_assignment(i, j)
+        if subproblem.size == 1:
+            subproblem = subproblem.create_subproblem_for_assignment(0, 0)
+            self.assignment[self.unassigned_a.pop()] = self.unassigned_b.pop()
+
         reward = self.remaining_qap.fixed_cost - subproblem.fixed_cost
         assert(reward <= 0)
 
@@ -47,6 +51,8 @@ class QAPEnv:
 
         self.reward_sum += -reward
         if self.done:
+            assert not self.unassigned_a
+            assert not self.unassigned_b
             assert np.isclose(self.qap.compute_value(self.assignment).item(), self.reward_sum)
 
         return reward
