@@ -212,11 +212,30 @@ class PygReinforceNet(torch.nn.Module):
 
         return self.compute_link_probabilities(node_dict['a'], node_dict['b'])
 
-def keep_mean_norm(x):
-    mean = torch.mean(x, dim=0)
-    centered_x = x - mean
-    stdev = (torch.square(centered_x).sum(dim=1).mean() + 1e-6).sqrt()
-    return centered_x / stdev + mean
+class KeepMeanNorm(torch.nn.Module):
+    def forward(self, x):
+        mean = torch.mean(x, dim=0)
+        centered_x = x - mean
+        stdev = (torch.square(centered_x).sum(dim=1).mean() + 1e-6).sqrt()
+        return centered_x / stdev + mean
+
+class TransformedMeanNorm(torch.nn.Module):
+    def __init__(self, channels):
+        super().__init__()
+        self.mean_linear = torch.nn.Linear(channels, channels)
+
+    def forward(self, x):
+        mean = torch.mean(x, dim=0)
+        centered_x = x - mean
+        stdev = (torch.square(centered_x).sum(dim=1).mean() + 1e-6).sqrt()
+
+        transformed_mean = F.relu(self.mean_linear(mean))
+        return centered_x / stdev + transformed_mean
+
+class FullLayerNorm(torch.nn.Module):
+    def forward(self, x):
+        normalized_shape = x.shape
+        return F.layer_norm(x, normalized_shape)
 
 class ConvLayer(torch.nn.Module):
     """
@@ -260,15 +279,9 @@ class ConvLayer(torch.nn.Module):
             raise ValueError(f"Invalid aggregation {self.aggregation}")
 
         assert(len(x.shape) == 2)
-        if self.norm == "layer_norm":
-            normalized_shape = x.shape
-            x = F.layer_norm(x, normalized_shape)
-        elif self.norm == "batch_norm":
-            x = F.batch_norm(x, running_mean=None, running_var=None, training=True)
-        elif self.norm == "keep_mean":
-            x = keep_mean_norm(x)
-        elif self.norm:
-            raise ValueError(f"Invalid norm {self.norm}")
+
+        if self.norm:
+            x = self.norm(x)
 
         return self.transformation(x)
 
@@ -285,17 +298,31 @@ class QapConvLayer(torch.nn.Module):
         # Size of embedding
         w = embedding_width
 
+        def create_norm(norm):
+            if norm == 'batch_norm':
+                return torch.nn.BatchNorm1d(num_features=w, track_running_stats=False, affine=False)
+            elif norm == 'layer_norm':
+                return FullLayerNorm()
+            elif norm == 'keep_mean':
+                return KeepMeanNorm()
+            elif norm == 'transformed_mean':
+                return TransformedMeanNorm(w)
+            elif norm:
+                raise ValueError(f"Invalid norm {self.norm_type}")
+            else:
+                return None
+
         self.q_conv = ConvLayer(
             edge_encoder=FullyConnected(edge_width, w, w, depth, activation=LeakyReLU, layer_norm=False),
             transformation=FullyConnected(w, w, w, 0, activation=LeakyReLU, layer_norm=False),
-            norm=conv_norm,
+            norm=create_norm(conv_norm),
             aggregation=q_aggr
         )
 
         self.l_conv = ConvLayer(
             edge_encoder=FullyConnected(edge_width, w, w, depth, activation=LeakyReLU, layer_norm=False),
             transformation=FullyConnected(w, w, w, 0, activation=LeakyReLU, layer_norm=False),
-            norm=conv_norm,
+            norm=create_norm(conv_norm),
             aggregation=l_aggr
         )
 
