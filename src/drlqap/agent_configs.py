@@ -220,3 +220,17 @@ def reinforce_dense_tmn():
         learning_rate=1e-3,
     )
 
+@define_agent_config()
+def reinforce_dense_bn():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='batch_norm'),
+        learning_rate=1e-4,
+    )
+
+@define_agent_config()
+def reinforce_dense_bn_lr2():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='batch_norm'),
+        learning_rate=1e-3,
+    )
+

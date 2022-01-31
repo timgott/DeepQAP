@@ -78,6 +78,9 @@ class ReinforceAgent:
             "episode_entropies": np.array(entropies),
         }
 
+        if learn:
+            self.episode_stats["loss"] = loss.item()
+
         # Training statistics
         for name, param in self.policy_net.named_parameters():
             if param.grad is not None:
