@@ -197,6 +197,24 @@ def dqn_dense_tmn_slow_long():
     )
 
 @define_agent_config()
+def dqn_dense_tmn_rni():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean', random_start=True),
+        learning_rate=5e-4,
+        eps_decay=utils.decay_halflife(2000),
+        eps_end=0
+    )
+
+@define_agent_config(training_steps=30000)
+def dqn_dense_tmn_rni_long():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean', random_start=True),
+        learning_rate=5e-5,
+        eps_decay=utils.decay_through(30000, 0.01),
+        eps_end=0
+    )
+
+@define_agent_config()
 def reinforce_dense():
     return ReinforceAgent(
         dqn_nets.dense(32, 1, 2, layer_norm=True),

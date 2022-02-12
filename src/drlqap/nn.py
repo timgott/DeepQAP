@@ -357,17 +357,18 @@ class DenseQAPNet(torch.nn.Module):
     Applies multiple QapConvLayers to a QAP.
     """
 
-    def __init__(self, embedding_width, encoder_depth, conv_depth, use_layer_norm, conv_norm, q_aggr, l_aggr, combined_transform) -> None:
+    def __init__(self, embedding_width, encoder_depth, conv_depth, use_layer_norm, conv_norm, q_aggr, l_aggr, combined_transform, random_start) -> None:
         super().__init__()
 
         w = embedding_width
         conv_kwargs = dict(conv_norm=conv_norm, q_aggr=q_aggr, l_aggr=l_aggr, combined_transform=combined_transform)
+        initial_w = 1 if not random_start else 1 + w
         self.a_layers = ModuleList(
-            [QapConvLayer(1, w, encoder_depth, **conv_kwargs)] +
+            [QapConvLayer(initial_w, w, encoder_depth, **conv_kwargs)] +
             [QapConvLayer(1 + w, w, encoder_depth, **conv_kwargs) for _ in range(conv_depth - 1)],
         )
         self.b_layers = ModuleList(
-            [QapConvLayer(1, w, encoder_depth, **conv_kwargs)] +
+            [QapConvLayer(initial_w, w, encoder_depth, **conv_kwargs)] +
             [QapConvLayer(1 + w, w, encoder_depth, **conv_kwargs) for _ in range(conv_depth - 1)],
         )
         if use_layer_norm:
@@ -375,6 +376,8 @@ class DenseQAPNet(torch.nn.Module):
         else:
             self.pair_norm = lambda x: x
         self.link_probability_net = FullyConnectedLinearOut(w * 2, w, 1, 3, activation=LeakyReLU, layer_norm=False)
+        self.random_start = random_start
+        self.embedding_width = embedding_width
 
     def compute_link_values(self, embeddings_a, embeddings_b):
         if self.link_probability_net:
@@ -393,8 +396,12 @@ class DenseQAPNet(torch.nn.Module):
         L = qap.linear_costs.unsqueeze(2)
 
         # Node embeddings
-        a = None
-        b = None
+        if self.random_start:
+            a = torch.rand(qap.size, self.embedding_width)
+            b = torch.rand(qap.size, self.embedding_width)
+        else:
+            a = None
+            b = None
 
         # Apply each conv layer
         for layer_a, layer_b in zip(self.a_layers, self.b_layers):
