@@ -12,6 +12,7 @@ def load_gradients(path: Path):
     for i, filename in enumerate(sorted(path.glob("gradient_*"))):
         gradients = load_float_txt(filename)
         segments = np.array_split(gradients, 20)
+        length = len(gradients)
 
         param_name = filename.stem[len("gradient_"):]
         layer_name, type = param_name.rsplit('.', maxsplit = 1)
@@ -21,10 +22,10 @@ def load_gradients(path: Path):
 
         mean_gradients[layer_name][type] = [np.mean(arr) for arr in segments]
 
-    return mean_gradients
+    return mean_gradients, length
 
 
-def generate_gradient_grid(layer_data):
+def generate_gradient_grid(n, layer_data):
     plt.rc('axes', titlesize=6)
 
     columns = 8
@@ -39,12 +40,12 @@ def generate_gradient_grid(layer_data):
         ax = axs[row, col]
 
         for param, gradients in gradients_data.items():
-            ind = range(len(gradients))
+            ind = np.linspace(0, n, num=len(gradients), endpoint=False)
             ax.fill_between(ind, gradients, label=param, alpha=0.5)
 
         for param, gradients in gradients_data.items():
-            ind = range(len(gradients))
-            ax.plot(ind, gradients, label=param)
+            ind = np.linspace(0, n, num=len(gradients), endpoint=False)
+            ax.plot(ind, gradients)
 
         ax.set_title(name, wrap=True, pad=0.8)
         ax.set_xticks([])
@@ -61,6 +62,6 @@ def generate_gradient_grid(layer_data):
 
     return fig
 
-data = load_gradients(Path(sys.argv[1]))
-fig = generate_gradient_grid(data)
+data, length = load_gradients(Path(sys.argv[1]))
+fig = generate_gradient_grid(length, data)
 plt.show()

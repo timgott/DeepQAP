@@ -30,8 +30,9 @@ training_results = ColumnDataSource(data=dict(episode=[], value=[], entropy=[], 
 def update_experiment_data(path):
     # Plot values during training
     value = load_float_txt(path / "value.txt")
-    value_mean = bottleneck.move_mean(value, window=200)
-    value_median = bottleneck.move_median(value, window=200)
+    window = 500
+    value_mean = bottleneck.move_mean(value, window=window)
+    value_median = bottleneck.move_median(value, window=window)
     episodes = list(range(0, len(value)))
     training_results.data = dict(
         episode=episodes,
