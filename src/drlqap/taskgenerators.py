@@ -1,7 +1,7 @@
 import random
 from drlqap import testgraphs
 from drlqap.qap import GraphAssignmentProblem
-from pathlib import Path
+from drlqap.qaplib import load_qaplib_set, load_qap
 
 generators = dict()
 
@@ -10,16 +10,10 @@ def define_problem_generator(f):
     generators[f.__name__] = f
     return f
 
-def load_qap(file_name, normalize=False):
-    with open(file_name) as f:
-        return GraphAssignmentProblem.from_qaplib_string(f.read(), normalize=normalize)
-
-def load_qap_set(file_names, normalize=False):
-    return [load_qap(fname, normalize=normalize) for fname in file_names]
-
 class SingleTask:
-    def __init__(self, task):
+    def __init__(self, task, solution=None):
         self.task = task
+        self.solution = solution
 
     def sample(self):
         return self.task
@@ -55,6 +49,23 @@ class RandomWeightsTaskGenerator(RandomTaskGenerator):
             return GraphAssignmentProblem(a, b)
         super().__init__(random_qap)
 
+class LazyGlobTaskGenerator():
+    def __init__(self, glob, normalize=False):
+        self.glob = glob
+        self.normalize = normalize
+        self.tasks = None
+
+    def get_tasks(self):
+        if self.tasks is None:
+            self.tasks = load_qaplib_set(self.glob, normalize=True)
+        return self.tasks
+
+    def sample(self):
+        return random.choice(self.get_tasks())
+
+    def test_set(self):
+        return self.get_tasks()
+
 @define_problem_generator
 def small_random_graphs():
     return RandomWeightsTaskGenerator(8)
@@ -80,10 +91,20 @@ def small_fixed():
 
 @define_problem_generator
 def qaplib_all_bur():
-    qaps = load_qap_set(sorted(Path("qapdata").glob("bur*.dat")))
+    qaps = load_qaplib_set("bur*.dat")
     return FixedTaskSet(qaps)
 
 @define_problem_generator
-def qaplib_all_bur_normalized():
-    qaps = load_qap_set(sorted(Path("qapdata").glob("bur*.dat")), normalize=True)
-    return FixedTaskSet(qaps)
+def qaplib_sko_42_64_normalized():
+    return FixedTaskSet(load_qaplib_set("sko[456]?.dat", normalize=True))
+
+@define_problem_generator
+def qaplib_all_sko_normalized():
+    return 
+
+def define_qaplib_task(category):
+    return lambda: LazyGlobTaskGenerator(f"{category}*.dat", normalize=True)
+
+qaplib_categories = ['bur', 'chr', 'esc', 'had', 'kra', 'lipa', 'nug', 'rou', 'scr', 'sko', 'ste', 'tai', 'tho', 'wil']
+for category in qaplib_categories:
+    generators[f"qaplib_all_{category}_normalized"] = define_qaplib_task(category)

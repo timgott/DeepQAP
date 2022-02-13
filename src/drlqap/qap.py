@@ -77,7 +77,7 @@ class GraphAssignmentProblem(QAP):
     graph_target: Graph
 
     # edge_weights: (start, end): weight
-    def __init__(self, graph_source: Graph, graph_target: Graph, normalize=False):
+    def __init__(self, graph_source: Graph, graph_target: Graph, normalize=False, name=None, known_solution=None):
         n = graph_source.number_of_nodes()
         m = graph_target.number_of_nodes()
         assert n == m
@@ -108,8 +108,12 @@ class GraphAssignmentProblem(QAP):
 
         super().__init__(a, b, None, 0)
 
+        # Metadata
         self.graph_source = graph_source
         self.graph_target = graph_target
+        self.name = name
+        self.known_solution = known_solution
+
 
     def compute_unscaled_value(self, assignment):
         v = self.compute_value(assignment)
@@ -117,7 +121,7 @@ class GraphAssignmentProblem(QAP):
 
     # I/O
     @staticmethod
-    def from_qaplib_string(qaplib_str, normalize=False):
+    def from_qaplib_string(qaplib_str, **kwargs):
         data = qaplib_str.split()
         size = int(data[0])
 
@@ -136,7 +140,7 @@ class GraphAssignmentProblem(QAP):
         assert graph_a.number_of_nodes() == size
         assert graph_b.number_of_nodes() == size
 
-        return GraphAssignmentProblem(graph_a, graph_b, normalize=normalize)
+        return GraphAssignmentProblem(graph_a, graph_b, **kwargs)
 
     def to_qaplib_string(self):
         def matrix_to_string(array):

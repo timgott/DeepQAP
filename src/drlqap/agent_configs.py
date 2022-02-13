@@ -270,3 +270,31 @@ def reinforce_dense_bn_lr2():
         learning_rate=1e-3,
     )
 
+@define_agent_config(training_steps=30000)
+def reinforce_tmn_slow_long():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        learning_rate=1e-5,
+    )
+
+@define_agent_config(training_steps=30000)
+def reinforce_tmn_fast_long():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        learning_rate=1e-3,
+    )
+
+@define_agent_config(training_steps=30000)
+def reinforce_tmn_medium_long():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        learning_rate=1e-4,
+    )
+
+@define_agent_config(training_steps=30000)
+def reinforce_tmn_slower_long():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        learning_rate=1e-6,
+    )
+
