@@ -64,7 +64,7 @@ class AgentStateViewModel:
                 n = len(nodes_a)
                 m = len(nodes_b)
                 probs = policy.distribution.probs.reshape(n, m)
-                log_probs = policy.distribution.logits.reshape(n, m)
+                log_probs = state.probs
             else:
                 probs = state.probs
                 log_probs = probs

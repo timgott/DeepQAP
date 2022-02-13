@@ -298,3 +298,10 @@ def reinforce_tmn_slower_long():
         learning_rate=1e-6,
     )
 
+@define_agent_config(training_steps=30000)
+def reinforce_tmn_rni():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean', random_start=True),
+        learning_rate=1e-4,
+    )
+

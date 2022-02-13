@@ -29,7 +29,7 @@ def train_agent(agent, problem_generator, experiment_path, training_steps, check
     trainer.train(training_steps, checkpoint_every)
 
 def print_usage():
-    print(f"Usage: {sys.argv[0]} experiment_path agent_type problem_generator")
+    print(f"Usage: {sys.argv[0]} experiment_path agent_type problem_generator [seed]")
     print("Agent types:")
     for agent in agents.keys():
         print(f"- {agent}")
@@ -38,21 +38,21 @@ def print_usage():
         print(f"- {task}")
 
 def main():
-    if len(sys.argv) != 4:
+    if len(sys.argv) not in [4, 5]:
         print_usage()
         return 1
 
+    experiment_path = sys.argv[1]
+    agent_name = sys.argv[2]
+    task_name = sys.argv[3]
+    seed = int(sys.argv[4]) if len(sys.argv) == 5 else 0
+
     # Fix random seed
-    seed = 0
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     np.random.seed(seed)
     random.seed(seed)
-
-    experiment_path = sys.argv[1]
-    agent_name = sys.argv[2]
-    task_name = sys.argv[3]
 
     if agent_name not in agents:
         print(f"Unknown agent type '{agent_name}'")
@@ -71,6 +71,10 @@ def main():
 
     with open(experiment_path / 'trainingtask', 'x') as f:
         f.write(task_name)
+
+    if seed != 0:
+        with open(experiment_path / 'seed', 'x') as f:
+            f.write(str(seed))
 
     train_agent(agent,
         problem_generator=problem_generator,
