@@ -32,7 +32,7 @@ def generate_gradient_grid(n, layer_data):
     rows = len(layer_data) // columns + 1
     print(columns, " x ", rows)
 
-    fig, axs = plt.subplots(rows, columns, sharey=True, sharex=True, squeeze=False, figsize=(25,25))
+    fig, axs = plt.subplots(rows, columns, sharey=True, sharex=True, squeeze=False, figsize=(15,10))
 
     for i, (name, gradients_data) in enumerate(layer_data.items()):
         row = i // columns
