@@ -18,8 +18,8 @@ def compute_random_average_value(qaps, samples=100):
     values = []
     for qap in qaps:
         for i in range(samples):
-           values.append(qap.compute_value(random_assignment(qap)))
-    return np.mean(values), np.min(values), np.max(values)
+           values.append(qap.compute_unscaled_value(random_assignment(qap)))
+    return values
 
 def compute_agent_average_value(agent, qaps, samples=100):
     values = []
@@ -27,9 +27,10 @@ def compute_agent_average_value(agent, qaps, samples=100):
         samples = 1
     for qap in qaps:
         for i in range(samples):
-            value, assignment = agent.solve(qap)
+            _, assignment = agent.solve(qap)
+            value = qap.compute_unscaled_value(assignment).item()
             values.append(value)
-    return np.mean(values), np.min(values), np.max(values)
+    return values
 
 def evaluate_one(agent, eval_qap):
     samples = 500
@@ -55,20 +56,26 @@ def evaluate_one(agent, eval_qap):
     if compute_optimum:
         print("Optimal:", optimal_value, optimal_assignment)
 
+def stat_string(values):
+    if len(values) < 10:
+        return ", ".join(str(x) for x in values)
+    else:
+        return f"mean: {np.mean(values)}; min: {np.min(values)}; max: {np.max(values)}"
+
 def evaluate_set(agent, eval_set):
     samples = 10
     print("Tasks:", len(eval_set))
     print("Samples per task:", samples)
 
     print("Finding random average...")
-    random_value = compute_random_average_value(eval_set, samples=samples)
+    random_values = compute_random_average_value(eval_set, samples=samples)
 
     print("Finding agent average...")
-    agent_value = compute_agent_average_value(agent, eval_set, samples=samples)
+    agent_values = compute_agent_average_value(agent, eval_set, samples=samples)
 
     print("Comparison:")
-    print("Random:", random_value)
-    print("Agent:", agent_value)
+    print("Random:", stat_string(random_values))
+    print("Agent:", stat_string(agent_values))
 
 def main():
     if len(sys.argv) not in (2,3):

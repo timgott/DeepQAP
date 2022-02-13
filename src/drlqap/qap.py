@@ -25,7 +25,7 @@ class QAP:
         self.size = A.size(0)
         assert(A.shape == (self.size, self.size))
         assert(B.shape == A.shape)
-        
+
         # Rewrite problems to set diagonals to 0
         L = torch.matmul(A.diag().reshape(self.size, 1), B.diag().reshape(1, self.size))
         if linear_costs is not None:
@@ -46,6 +46,9 @@ class QAP:
         return torch.sum(self.A * self.B[assignment,:][:,assignment]) \
             + torch.sum(self.linear_costs[i,assignment]) \
             + self.fixed_cost
+
+    def compute_unsigned_value(self, assignment):
+        return self.compute_value(assignment)
 
     def create_subproblem_for_assignment(self, a, b):
         """
@@ -74,19 +77,43 @@ class GraphAssignmentProblem(QAP):
     graph_target: Graph
 
     # edge_weights: (start, end): weight
-    def __init__(self, graph_source: Graph, graph_target: Graph):
-        assert graph_source.number_of_nodes() == graph_target.number_of_nodes()
+    def __init__(self, graph_source: Graph, graph_target: Graph, normalize=False):
+        n = graph_source.number_of_nodes()
+        m = graph_target.number_of_nodes()
+        assert n == m
         assert nx.is_weighted(graph_source)
         assert nx.is_weighted(graph_target)
 
-        super().__init__(
-            torch.tensor(nx.adjacency_matrix(graph_source).todense(), dtype=torch.float32), 
-            torch.tensor(nx.adjacency_matrix(graph_target).todense(), dtype=torch.float32),
-            None, 0
-        )
+        def norm_matrix(array):
+            lower = torch.min(array)
+            upper = torch.max(array)
+            range = upper - lower
+            return (array - lower) / range, lower, range
+
+        a = torch.tensor(nx.adjacency_matrix(graph_source).todense(), dtype=torch.float32)
+        b = torch.tensor(nx.adjacency_matrix(graph_target).todense(), dtype=torch.float32)
+
+        self.value_scale = 1
+        self.value_shift = 0
+
+        if normalize:
+            a, a_min, a_scale = norm_matrix(a)
+            b, b_min, b_scale = norm_matrix(b)
+            self.value_scale = a_scale * b_scale
+            self.value_shift = (
+                a_scale * a.sum() * b_min 
+                + b_scale * b.sum() * a_min 
+                + n * m * a_min * b_min
+            )
+
+        super().__init__(a, b, None, 0)
 
         self.graph_source = graph_source
         self.graph_target = graph_target
+
+    def compute_unscaled_value(self, assignment):
+        v = self.compute_value(assignment)
+        return v * self.value_scale + self.value_shift
 
     # I/O
     @staticmethod
@@ -98,13 +125,7 @@ class GraphAssignmentProblem(QAP):
 
         def parse_matrix(data, offset, size):
             # format and optionally normalize
-            array = np.array(data[offset:offset + size*size]).reshape((size, size))
-            if normalize:
-                lower = np.min(array)
-                upper = np.max(array)
-                return (array - lower) / (upper - lower)
-            else:
-                return array
+            return np.array(data[offset:offset + size*size]).reshape((size, size))
 
         float_data = [float(x) for x in data[1:]]
         connectivity_a = parse_matrix(float_data, 0, size)
@@ -115,7 +136,7 @@ class GraphAssignmentProblem(QAP):
         assert graph_a.number_of_nodes() == size
         assert graph_b.number_of_nodes() == size
 
-        return GraphAssignmentProblem(graph_a, graph_b)
+        return GraphAssignmentProblem(graph_a, graph_b, normalize=normalize)
 
     def to_qaplib_string(self):
         def matrix_to_string(array):
