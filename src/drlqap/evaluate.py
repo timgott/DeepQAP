@@ -74,7 +74,7 @@ def compute_gaps(values, target_values):
     return [(v - t) / t for v, t in zip(values, target_values)]
 
 def evaluate_set(agent, eval_set):
-    samples = 100
+    samples = 10
     print("Tasks:", len(eval_set))
     print("Samples per task:", samples)
 
@@ -126,7 +126,7 @@ def main():
 
     print(f"Evaluating agent '{agent_name}' on task '{problem_generator_name}'")
 
-    problem_generator = taskgenerators.generators[problem_generator_name]()
+    problem_generator = taskgenerators.generators[problem_generator_name]
     test_set = problem_generator.test_set()
 
     if len(test_set) == 1:

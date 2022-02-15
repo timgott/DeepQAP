@@ -60,7 +60,7 @@ def main():
         print(f"Unknown task generator '{task_name}'")
 
     agent = agents[agent_name]()
-    problem_generator = tasks[task_name]()
+    problem_generator = tasks[task_name]
     training_steps = agent_training_steps[agent_name]
 
     experiment_path = create_experiment_folder(Path(experiment_path)) 

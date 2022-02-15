@@ -19,6 +19,14 @@ def create_single_edge(size):
     graph.add_edge(0, 1, weight=1.0)
     return graph
 
+def create_chain(size, chain_length):
+    assert chain_length < size
+    graph = Graph()
+    graph.add_nodes_from(range(size))
+    for i in range(chain_length):
+        graph.add_edge(i, i+1, weight=1.0)
+    return graph
+
 def create_random_graph(size, p):
     graph = networkx.gnp_random_graph(size, p)
     for u,v,data in graph.edges(data=True):

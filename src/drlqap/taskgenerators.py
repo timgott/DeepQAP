@@ -1,14 +1,11 @@
 import random
+
+from torch.nn.functional import normalize
 from drlqap import testgraphs
 from drlqap.qap import GraphAssignmentProblem
 from drlqap.qaplib import load_qaplib_set, load_qap
 
 generators = dict()
-
-def define_problem_generator(f):
-    assert f.__name__ not in generators
-    generators[f.__name__] = f
-    return f
 
 class SingleTask:
     def __init__(self, task, solution=None):
@@ -66,45 +63,23 @@ class LazyGlobTaskGenerator():
     def test_set(self):
         return self.get_tasks()
 
-@define_problem_generator
-def small_random_graphs():
-    return RandomWeightsTaskGenerator(8)
-
-@define_problem_generator
-def medium_random_graphs():
-    return RandomWeightsTaskGenerator(16)
-
-@define_problem_generator
-def qaplib_bur26a():
-    qap = load_qap("qapdata/bur26a.dat")
-    return SingleTask(qap)
-
-@define_problem_generator
-def qaplib_bur26a_normalized():
-    qap = load_qap("qapdata/bur26a.dat", normalize=True)
-    return SingleTask(qap)
-
-@define_problem_generator
-def small_fixed():
-    qap = load_qap("qapdata/testgraph.dat")
-    return SingleTask(qap)
-
-@define_problem_generator
-def qaplib_all_bur():
-    qaps = load_qaplib_set("bur*.dat")
-    return FixedTaskSet(qaps)
-
-@define_problem_generator
-def qaplib_sko_42_64_normalized():
-    return FixedTaskSet(load_qaplib_set("sko[456]?.dat", normalize=True))
-
-@define_problem_generator
-def qaplib_all_sko_normalized():
-    return 
-
-def define_qaplib_task(category):
-    return lambda: LazyGlobTaskGenerator(f"{category}*.dat", normalize=True)
+def triangle_generator():
+    a = testgraphs.create_chain(3, 2)
+    b = testgraphs.create_chain(3, 1)
+    return GraphAssignmentProblem(a, b)
 
 qaplib_categories = ['bur', 'chr', 'esc', 'had', 'kra', 'lipa', 'nug', 'rou', 'scr', 'sko', 'ste', 'tai', 'tho', 'wil']
-for category in qaplib_categories:
-    generators[f"qaplib_all_{category}_normalized"] = define_qaplib_task(category)
+generators = {
+    'small_random_graphs': RandomWeightsTaskGenerator(8),
+    'medium_random_graphs': RandomWeightsTaskGenerator(16),
+    'qaplib_bur26a': SingleTask(load_qap("qapdata/bur26a.dat")),
+    'qaplib_bur26a_normalized': SingleTask(load_qap("qapdata/bur26a.dat", normalize=True)),
+    'small_fixed': SingleTask(load_qap("qapdata/testgraph.dat")),
+    'triangle': SingleTask(triangle_generator()),
+    'qaplib_all_bur': LazyGlobTaskGenerator(f"bur*.dat", normalize=False),
+    'qaplib_sko_42_64_normalized': FixedTaskSet(load_qaplib_set("sko[456]?.dat", normalize=True)),
+    **{
+        f"qaplib_all_{category}_normalized": LazyGlobTaskGenerator(f"{category}*.dat", normalize=True)
+        for category in qaplib_categories
+    },
+}
