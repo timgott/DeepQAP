@@ -1,7 +1,12 @@
 <?xml version="1.0"?>
 <!DOCTYPE ipe SYSTEM "ipe.dtd">
 <ipe version="70218" creator="Ipe 7.2.24">
-<info created="D:20220220151030" modified="D:20220223224549"/>
+<info created="D:20220220151030" modified="D:20220224152328" numberpages="yes"/>
+<preamble>\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\usepackage{enumitem}
+\usepackage{microtype}</preamble>
 <ipestyle name="decorations">
 <symbol name="decoration/simple-box-small">
 <path stroke="black" fill="lightgray">
@@ -1005,7 +1010,9 @@ h
 <gridsize name="20 pts (~7 mm)" value="20"/>
 <gridsize name="28 pts (~10 mm)" value="28"/>
 <gridsize name="32 pts (~12 mm)" value="32"/>
+<gridsize name="4 (~1.5 mm)" value="4"/>
 <gridsize name="56 pts (~20 mm)" value="56"/>
+<gridsize name="8 pts (~3 mm)" value="8"/>
 <opacity name="10%" value="0.1"/>
 <opacity name="30%" value="0.3"/>
 <opacity name="50%" value="0.5"/>
@@ -1073,6 +1080,18 @@ h
 84 216 l
 324 216 l
 324 84 l
+h
+</path>
+</symbol>
+<symbol name="symbol/message(s)">
+<path matrix="1 0 0 1 -328 -424" stroke="sym-stroke" fill="white" pen="1.6" fillrule="wind">
+316 433.143 m
+328 424 l
+340 433.143 l
+316 433.143 m
+316 417.143 l
+340 417.143 l
+340 433.143 l
 h
 </path>
 </symbol>
@@ -1532,42 +1551,321 @@ h
 <layer name="gamma"/>
 <layer name="delta"/>
 <layer name="epsilon"/>
+<layer name="zeta"/>
 <view layers="alpha" active="alpha"/>
 <view layers="alpha beta" active="alpha"/>
 <view layers="alpha beta gamma" active="alpha"/>
 <view layers="alpha beta gamma delta" active="alpha"/>
-<view layers="alpha beta gamma delta epsilon" active="epsilon"/>
-<text layer="alpha" matrix="1 0 0 1 40 -48" transformations="translations" pos="120 416" stroke="black" type="label" width="200.628" height="20.9076" depth="12.18" valign="baseline" style="math">\sum_{i,j} a_{i,j} b_{f(i),f(j)}</text>
-<text layer="delta" matrix="1 0 0 1 80 16" transformations="translations" pos="128 416" stroke="gray40" type="label" width="127.654" height="16.6224" depth="4.632" halign="center" valign="baseline" size="small">edge weights</text>
-<path matrix="1 0 0 1 -32 32" stroke="gray40">
+<view layers="alpha beta gamma delta epsilon" active="zeta"/>
+<view layers="alpha beta gamma delta epsilon zeta" active="zeta"/>
+<text layer="alpha" matrix="1 0 0 1 40 -16" transformations="translations" pos="120 416" stroke="black" type="label" width="200.628" height="20.9076" depth="12.18" valign="baseline" style="math">\sum_{i,j} a_{i,j} b_{f(i),f(j)}</text>
+<text layer="delta" matrix="1 0 0 1 80 48" transformations="translations" pos="128 416" stroke="gray40" type="label" width="127.654" height="16.6224" depth="4.632" halign="center" valign="baseline" size="small">edge weights</text>
+<path matrix="1 0 0 1 -32 64" stroke="gray40">
 240 392 m
 256 352 l
 </path>
-<path matrix="1 0 0 1 -32 32" stroke="gray40">
+<path matrix="1 0 0 1 -32 64" stroke="gray40">
 256 392 m
 296 360 l
 </path>
-<text layer="beta" matrix="1 0 0 1 8 -112" transformations="translations" pos="128 416" stroke="gray40" type="label" width="185.306" height="16.6224" depth="4.632" halign="center" valign="baseline" size="small">edges in left graph</text>
-<path matrix="1 0 0 1 96 32" stroke="gray40">
+<text layer="beta" matrix="1 0 0 1 8 -80" transformations="translations" pos="128 416" stroke="gray40" type="label" width="185.306" height="16.6224" depth="4.632" halign="center" valign="baseline" size="small">edges in left graph</text>
+<path matrix="1 0 0 1 96 64" stroke="gray40">
 104 296 m
 104 320 l
 </path>
-<text layer="gamma" matrix="1 0 0 1 152 -80" transformations="translations" pos="272 384" stroke="gray40" type="label" width="281.479" height="16.6224" depth="4.632" halign="center" valign="baseline" size="small">assigned edge in right graph</text>
-<path matrix="1 0 0 1 -32 32" stroke="gray40">
+<text layer="gamma" matrix="1 0 0 1 152 -48" transformations="translations" pos="272 384" stroke="gray40" type="label" width="281.479" height="16.6224" depth="4.632" halign="center" valign="baseline" size="small">assigned edge in right graph</text>
+<path matrix="1 0 0 1 -32 64" stroke="gray40">
 312 320 m
 384 320 l
 </path>
-<path matrix="1 0 0 1 -32 32" stroke="gray40">
+<path matrix="1 0 0 1 -32 64" stroke="gray40">
 348 320 m
 448 288 l
 </path>
-<group layer="epsilon" decoration="decoration/wirebox">
+<group layer="epsilon" matrix="1 0 0 1 0 32" decoration="decoration/wirebox">
 <text matrix="1 0 0 1 -208 -48" transformations="translations" pos="336 192" stroke="black" type="label" width="452.41" height="19.3928" depth="5.404" valign="baseline">Find assignment $f$ that minimizes cost</text>
 <text matrix="1 0 0 1 -208 0" transformations="translations" pos="336 192" stroke="gray40" type="label" width="52.6148" height="19.3704" depth="0" valign="baseline">Goal</text>
 </group>
+<text layer="zeta" matrix="1 0 0 1 0 16" transformations="translations" pos="128 64" stroke="black" type="label" width="307.857" height="19.3872" depth="3.472" valign="baseline">Problem: QAP is NP-hard</text>
 </page>
-<page>
+<page title="Reinforcement learning approach">
 <layer name="alpha"/>
-<view layers="alpha" active="alpha"/>
+<layer name="epsilon"/>
+<layer name="beta"/>
+<layer name="gamma"/>
+<layer name="delta"/>
+<layer name="zeta"/>
+<layer name="eta"/>
+<view layers="alpha epsilon beta gamma delta zeta" active="alpha"/>
+<view layers="alpha beta gamma delta zeta" active="epsilon"/>
+<view layers="alpha gamma delta zeta" active="alpha"/>
+<view layers="alpha delta zeta" active="alpha"/>
+<view layers="alpha zeta" active="alpha"/>
+<view layers="alpha" active="zeta"/>
+<view layers="alpha eta" active="eta"/>
+<text layer="alpha" matrix="1 0 0 1 48 -16" transformations="translations" pos="80 416" stroke="black" type="minipage" width="608" height="73.9344" depth="62.088" valign="top" size="small">\begin{description}[align=right,font=\normalfont\textcolor{title},]
+\tightlist
+\item[State]
+Graph representation of the problem
+\item[Actions]
+Pairs of nodes
+\item[Reward]
+Cost that becomes fixed after pair has been assigned
+\item[Next state]
+Remaining problem after assignment
+\item[Initial state]
+Unassigned QAP, fixed or random
+\end{description}</text>
+<text transformations="translations" pos="0 448" stroke="black" type="label" width="477.742" height="16.6032" depth="0" valign="baseline" size="small">Define an environment as a deterministic MDP:</text>
+<path layer="beta" matrix="3.22708 0 0 0.879584 -300.164 42.6123" fill="white">
+135.025 378.921 m
+135.025 344.758 l
+317.587 344.758 l
+317.587 378.921 l
+h
+</path>
+<path layer="gamma" matrix="3.22708 0 0 0.879584 -297.875 14.3796" fill="white">
+135.025 378.921 m
+135.025 344.758 l
+317.587 344.758 l
+317.587 378.921 l
+h
+</path>
+<path layer="delta" matrix="3.22708 0 0 0.879584 -296.349 -16.9053" fill="white">
+135.025 378.921 m
+135.025 344.758 l
+317.587 344.758 l
+317.587 378.921 l
+h
+</path>
+<path layer="epsilon" fill="white">
+136.332 407.696 m
+136.332 374.122 l
+596.454 374.122 l
+596.454 407.696 l
+h
+</path>
+<path layer="zeta" fill="white">
+138.162 261.129 m
+138.162 287.177 l
+525.71 287.177 l
+525.71 261.129 l
+h
+</path>
+</page>
+<page title="Graph neural networks">
+<layer name="alpha"/>
+<layer name="zeta"/>
+<layer name="beta"/>
+<layer name="gamma"/>
+<layer name="delta"/>
+<layer name="epsilon"/>
+<layer name="eta"/>
+<layer name="kappa"/>
+<layer name="theta"/>
+<layer name="iota"/>
+<layer name="lambda"/>
+<layer name="mu"/>
+<layer name="nu"/>
+<view layers="alpha kappa theta iota" active="kappa"/>
+<view layers="alpha kappa theta iota mu" active="mu"/>
+<view layers="alpha zeta theta iota" active="theta"/>
+<view layers="alpha zeta beta theta iota" active="beta"/>
+<view layers="alpha zeta beta gamma theta iota" active="gamma"/>
+<view layers="alpha zeta beta gamma delta theta iota" active="delta"/>
+<view layers="alpha zeta beta gamma delta eta iota" active="zeta"/>
+<view layers="alpha zeta epsilon eta iota" active="lambda"/>
+<view layers="alpha zeta epsilon eta lambda" active="lambda"/>
+<view layers="alpha zeta epsilon eta lambda nu" active="nu"/>
+<path layer="nu" stroke="black" pen="1.6">
+224 496
+192 480
+208 448
+240.519 443.828
+288 432
+320 464
+304 496
+240 496 u
+</path>
+<path stroke="black" pen="1.6">
+96 432
+48 448
+48 400
+64 368
+96 352
+112 368
+144 384
+128 416
+112 432 u
+</path>
+<use layer="epsilon" matrix="1 0 0 1 -96 52" name="symbol/message(s)" pos="320 416" stroke="chocolate3"/>
+<path layer="alpha" stroke="black" pen="fat">
+256 432 m
+352 384 l
+</path>
+<path stroke="black">
+256 432 m
+144 400 l
+</path>
+<path stroke="black" pen="heavier">
+240 312 m
+256 432 l
+</path>
+<path stroke="black">
+144 400 m
+240 312 l
+</path>
+<path layer="delta" stroke="chocolate3" pen="1.6">
+264 368 m
+224 344
+224 376 c
+</path>
+<path stroke="chocolate3" pen="1.6">
+228 300 m
+200 328
+224 344
+224 376 c
+</path>
+<path stroke="chocolate3" pen="1.6" arrow="linear/normal">
+224 376 m
+224 408
+240 440 c
+</path>
+<path layer="gamma" stroke="purple" pen="1.6">
+112 416 m
+128 448
+152 464
+184 472 c
+</path>
+<path stroke="purple" pen="1.6" arrow="linear/normal">
+184 472 m
+208 480
+240 464 c
+</path>
+<path stroke="purple" pen="1.6">
+172 440 m
+152 464
+184 472 c
+</path>
+<path layer="beta" stroke="chartreuse4" pen="1.6">
+368 400 m
+352 448
+328 464 c
+</path>
+<path stroke="chartreuse4" pen="1.6">
+328 432 m
+352 448
+328 464 c
+</path>
+<path stroke="chartreuse4" pen="1.6" arrow="linear/normal">
+328 464 m
+304 480
+272 464 c
+</path>
+<path layer="alpha" stroke="black">
+240 312 m
+352 384 l
+</path>
+<group>
+<use matrix="1 0 0 1 -16 -16" name="mark/disk(sx)" pos="160 416" size="normal" stroke="black"/>
+<text matrix="1 0 0 1 -176 -48" transformations="translations" pos="304 448" stroke="black" type="label" width="30.9624" height="12.4096" depth="4.172" halign="right" valign="center" style="math">\mathbf{x_2}</text>
+</group>
+<group matrix="1 0 0 1 0 -8">
+<use matrix="1 0 0 1 -16 -16" name="mark/disk(sx)" pos="256 336" size="normal" stroke="black"/>
+<text matrix="1 0 0 1 -64 -144" transformations="translations" pos="304 448" stroke="black" type="label" width="30.9624" height="12.4096" depth="4.172" halign="center" valign="top" style="math">\mathbf{x_4}</text>
+</group>
+<group matrix="1 0 0 1 -16 16">
+<use matrix="1 0 0 1 -16 -96" name="mark/disk(sx)" pos="384 464" size="normal" stroke="black"/>
+<text matrix="1 0 0 1 80 -80" transformations="translations" pos="304 448" stroke="black" type="label" width="30.9624" height="12.4096" depth="4.172" valign="center" style="math">\mathbf{x_3}</text>
+</group>
+<group matrix="1 0 0 1 -48 0">
+<use matrix="1 0 0 1 16 0" name="mark/disk(sx)" pos="288 432" size="normal" stroke="black"/>
+<text transformations="translations" pos="304 448" stroke="black" type="label" width="30.9624" height="12.4096" depth="4.172" halign="center" valign="baseline" style="math">\mathbf{x_1}</text>
+</group>
+<use layer="beta" matrix="1 0 0 1 8 48" name="symbol/message(s)" pos="320 416" stroke="chartreuse4"/>
+<text matrix="1 0 0 1 -4 -32" transformations="translations" pos="304 448" stroke="black" type="label" width="41.3728" height="12.4096" depth="4.172" valign="bottom" style="math">\mathbf{e_{31}}</text>
+<text layer="gamma" matrix="1 0 0 1 -100 -27.4184" transformations="translations" pos="304 448" stroke="black" type="label" width="41.3728" height="12.4096" depth="4.172" halign="right" valign="bottom" style="math">\mathbf{e_{21}}</text>
+<use layer="epsilon" matrix="1 0 0 1 -64 64" name="symbol/message(s)" pos="320 416" stroke="purple"/>
+<use layer="delta" matrix="1 0 0 1 -96 -40" name="symbol/message(s)" pos="320 416" stroke="chocolate3"/>
+<text matrix="1 0 0 1 -48 -71.4184" transformations="translations" pos="304 448" stroke="black" type="label" width="41.3728" height="12.4096" depth="4.172" valign="center" style="math">\mathbf{e_{41}}</text>
+<use layer="epsilon" matrix="1 0 0 1 -32 52" name="symbol/message(s)" pos="320 416" stroke="chartreuse4"/>
+<use layer="gamma" matrix="1 0 0 1 -132 56" name="symbol/message(s)" pos="320 416" stroke="purple"/>
+<use layer="epsilon" matrix="1 0 0 1 96 -44" name="symbol/message(s)" pos="320 416" stroke="chocolate3"/>
+<use matrix="1 0 0 1 -112 -148" name="symbol/message(s)" pos="320 416" stroke="darkorchid3"/>
+<use matrix="1 0 0 1 -48 -148" name="symbol/message(s)" pos="320 416" stroke="chartreuse4"/>
+<use matrix="1 0 0 1 -240 -28" name="symbol/message(s)" pos="320 416" stroke="darkgoldenrod4"/>
+<use matrix="1 0 0 1 -240 -4" name="symbol/message(s)" pos="320 416" stroke="red4"/>
+<use matrix="1 0 0 1 -80 -156" name="symbol/message(s)" pos="320 416" stroke="red3"/>
+<use matrix="1 0 0 1 96 -20" name="symbol/message(s)" pos="320 416" stroke="red2"/>
+<text layer="zeta" matrix="1 0 0 1 -472 -268" transformations="translations" pos="472 460" stroke="black" type="label" width="471.044" height="19.3928" depth="5.404" valign="baseline">1. Create messages from neighbor edges</text>
+<text layer="eta" matrix="1 0 0 1 -472 -300" transformations="translations" pos="472 460" stroke="black" type="label" width="268.03" height="19.3928" depth="5.404" valign="baseline">2. Aggregate messages</text>
+<text layer="alpha" matrix="1 0 0 1 -48 -16" transformations="translations" pos="176 80" stroke="black" type="label" width="380.33" height="32.0684" depth="18.144" valign="baseline" style="math">\mathbf{x}_i&apos; = \psi \left( \mathbf{x}_i, \sum_{j \in \mathcal{N}(i)} \phi(\mathbf{x}_j, \mathbf{e}_{ji}) \right)</text>
+<path layer="kappa" matrix="1.64016 0 0 1.03608 -104.846 -20.5275" fill="white">
+246.021 125.502 m
+246.021 44.9635 l
+363.731 44.9635 l
+363.731 125.502 l
+h
+</path>
+<path layer="iota" matrix="1 0 0 1 128 -16" fill="white">
+-3.80519 115.494 m
+-3.80519 58.9349 l
+140.106 58.9349 l
+140.106 115.494 l
+h
+</path>
+<path matrix="1 0 0 1 128 -16" fill="white">
+389.595 48.88 m
+389.595 116.122 l
+361.943 116.122 l
+361.943 48.88 l
+h
+</path>
+<path layer="theta" matrix="0.296369 0 0 1.13894 225.699 -32.7455" fill="white">
+138.849 120.521 m
+138.849 54.5359 l
+243.798 54.5359 l
+243.798 120.521 l
+h
+</path>
+<text layer="lambda" matrix="1 0 0 1 -472 -332" transformations="translations" pos="472 460" stroke="black" type="label" width="280.35" height="19.3928" depth="5.404" valign="baseline">3. Apply transformation</text>
+<path layer="nu" stroke="black" pen="1.6">
+400 416
+352 416
+368 352
+416 336
+464 384
+432 432 u
+</path>
+<path stroke="black" pen="1.6">
+272 304
+208 304
+160 256
+247.54 229.404
+320 272 u
+</path>
+<text matrix="1 0 0 1 -207.543 -121.144" transformations="translations" pos="304 448" stroke="black" type="label" width="30.9624" height="20.9804" depth="6.916" halign="center" valign="top" style="math">\mathbf{x&apos;_2}</text>
+<text matrix="1 0 0 1 42.8268 23.8835" transformations="translations" pos="304 448" stroke="black" type="label" width="30.9624" height="20.9804" depth="6.916" valign="center" style="math">\mathbf{x&apos;_1}</text>
+<text matrix="1 0 0 1 180.036 -80.4724" transformations="translations" pos="304 448" stroke="black" type="label" width="30.9624" height="20.9804" depth="6.916" valign="center" style="math">\mathbf{x&apos;_3}</text>
+<text matrix="1 0 0 1 33.4984 -175.989" transformations="translations" pos="304 448" stroke="black" type="label" width="30.9624" height="20.9804" depth="6.916" valign="center" style="math">\mathbf{x&apos;_4}</text>
+<path stroke="black" pen="1.6" arrow="linear/normal">
+97.3321 357.798 m
+96 331.893 l
+</path>
+<path stroke="black" pen="1.6" arrow="linear/normal">
+300.561 273.886 m
+329.24 273.042 l
+</path>
+<path stroke="black" pen="1.6" arrow="linear/normal">
+448.435 376.405 m
+478.242 367.404 l
+</path>
+<path stroke="black" pen="1.6" arrow="linear/normal">
+312.666 469.15 m
+343.02 470.93 l
+</path>
+<group layer="mu" matrix="1 0 0 1 96 -80" decoration="decoration/wirebox">
+<text matrix="1 0 0 1 -384 -80" transformations="translations" pos="384 304" stroke="black" type="label" width="528.59" height="20.9244" depth="6.972" valign="baseline">How can we create a general function $f_\theta(\mathcal{G})$?</text>
+</group>
 </page>
 </ipe>
