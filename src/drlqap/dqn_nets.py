@@ -107,15 +107,13 @@ def mp_histogram_gat(hidden_channels, embedding_size, depth):
 def simple_link_prediction_undirected(embedding_size, hidden_channels, depth):
     histogram_encoder = lambda C: nn.edge_histogram_embeddings(C, bins=embedding_size)
     link_probability_net = nn.FullyConnectedLinearOut(
-        embedding_size * 2, hidden_channels, 1,
+        embedding_size * 2 + 1, hidden_channels, 1,
         depth=depth, activation=ELU
     )
 
-    return nn.PygReinforceNet(
+    return nn.SimpleQapNet(
         edge_encoder=histogram_encoder,
-        initial_node_encoder=identity_encoder,
-        link_probability_net=link_probability_net,
-        message_passing_net=None
+        probability_net=link_probability_net,
     )
 
 

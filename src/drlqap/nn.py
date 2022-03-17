@@ -39,9 +39,12 @@ def edge_histogram_embeddings(connectivity, bins):
     if step == 0:
         return torch.zeros(connectivity.shape + (bins,))
 
-    range = torch.arange(lower, upper - step/2, step=step).reshape(1,1,-1)
+    range = torch.arange(lower, upper - step/2, step=step)
+    range[0] -= 1
+    range.reshape(1,1,-1)
     connectivity3d = connectivity.unsqueeze(2)
-    return torch.where((connectivity3d >= range) & (connectivity3d < range + step), 1.0, 0.0)
+    bin = (connectivity3d > range).sum(dim=-1) - 1
+    return F.one_hot(bin, num_classes=bins)
 
 def bidirectional_edge_histogram_embeddings(connectivity, bins):
     incoming = edge_histogram_embeddings(connectivity, bins)
@@ -210,7 +213,24 @@ class PygReinforceNet(torch.nn.Module):
         else:
             node_dict = hdata.x_dict
 
+        self.embeddings_a = node_dict['a']
+        self.embeddings_b = node_dict['b']
+
         return self.compute_link_probabilities(node_dict['a'], node_dict['b'])
+
+class SimpleQapNet(torch.nn.Module):
+    def __init__(self, edge_encoder, probability_net):
+        super().__init__()
+        self.edge_encoder = edge_encoder
+        self.probability_net = probability_net
+
+    def forward(self, qap: QAP):
+        self.embeddings_a = aggregate_incoming_edges(self.edge_encoder(qap.A))
+        self.embeddings_b = aggregate_incoming_edges(self.edge_encoder(qap.B))
+        pair_matrix = cartesian_product_matrix(self.embeddings_a, self.embeddings_b)
+        pair_matrix = torch.cat((pair_matrix, qap.linear_costs.unsqueeze(2)), dim=-1)
+        result = self.probability_net(pair_matrix).reshape((qap.size, qap.size))
+        return result
 
 class KeepMeanNorm(torch.nn.Module):
     def forward(self, x):

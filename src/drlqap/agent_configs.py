@@ -79,6 +79,14 @@ def dqn_simple_lp():
     )
 
 @define_agent_config()
+def dqn_simpler_lp():
+    return DQNAgent(
+        dqn_nets.simple_link_prediction_undirected(8,32,3),
+        learning_rate=1e-4,
+        eps_decay=utils.decay_halflife(2000)
+    )
+
+@define_agent_config()
 def dqn_gat_no_lp():
     return DQNAgent(
         dqn_nets.mp_gat_no_lp(64,32,32,3),
