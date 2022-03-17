@@ -55,6 +55,7 @@ class LazyGlobTaskGenerator():
     def get_tasks(self):
         if self.tasks is None:
             self.tasks = load_qaplib_set(self.glob, normalize=True)
+            assert self.tasks, f"No qap file matching {self.glob}"
         return self.tasks
 
     def sample(self):
@@ -72,14 +73,15 @@ qaplib_categories = ['bur', 'chr', 'esc', 'had', 'kra', 'lipa', 'nug', 'rou', 's
 generators = {
     'small_random_graphs': RandomWeightsTaskGenerator(8),
     'medium_random_graphs': RandomWeightsTaskGenerator(16),
-    'qaplib_bur26a': SingleTask(load_qap("qapdata/bur26a.dat")),
-    'qaplib_bur26a_normalized': SingleTask(load_qap("qapdata/bur26a.dat", normalize=True)),
-    'small_fixed': SingleTask(load_qap("qapdata/testgraph.dat")),
+    'qaplib_bur26a': LazyGlobTaskGenerator("bur26a.dat"),
+    'qaplib_bur26a_normalized': LazyGlobTaskGenerator("bur26a.dat", normalize=True),
+    'small_fixed': LazyGlobTaskGenerator("testgraph.dat"),
     'triangle': SingleTask(triangle_generator()),
-    'qaplib_all_bur': LazyGlobTaskGenerator(f"bur*.dat", normalize=False),
-    'qaplib_sko_42_64_normalized': FixedTaskSet(load_qaplib_set("sko[456]?.dat", normalize=True)),
+    'qaplib_all_bur': LazyGlobTaskGenerator("bur*.dat", normalize=False),
+    'qaplib_sko_42_64_normalized': LazyGlobTaskGenerator("sko[456]?.dat", normalize=True),
     **{
         f"qaplib_all_{category}_normalized": LazyGlobTaskGenerator(f"{category}*.dat", normalize=True)
         for category in qaplib_categories
     },
+    'qaplib_tai35a_normalized': LazyGlobTaskGenerator("tai35a.dat", normalize=False),
 }
