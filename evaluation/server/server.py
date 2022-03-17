@@ -66,7 +66,7 @@ def path_select(title, paths, callback):
 agent_dropdown = path_select("Agent", agent_folders, agent_selected_callback)
 
 # Plot training results
-value_plot = figure(title="Training assignment values")
+value_plot = figure(title="Training assignment values", width=1000, height=600)
 value_plot.cross(x='episode', y='value', source=training_results, alpha=0.6)
 value_plot.line(x='episode', y='value_median', source=training_results, color="green", line_width=2)
 value_plot.line(x='episode', y='value_mean', source=training_results, color="red", line_width=2)
