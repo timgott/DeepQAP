@@ -1,5 +1,5 @@
 import torch
-from drlqap import nn
+from drlqap import nnutils
 
 def test_cartesian_product_matrix():
     t1 = torch.tensor([[1, 2], [3, 4]])
@@ -9,7 +9,7 @@ def test_cartesian_product_matrix():
         [[1,2,5,6], [1,2,7,8]],
         [[3,4,5,6], [3,4,7,8]],
     ])
-    result = nn.cartesian_product_matrix(t1, t2)
+    result = nnutils.cartesian_product_matrix(t1, t2)
     assert(torch.equal(result, expected))
 
 def test_concat_bidirectional():
@@ -21,7 +21,7 @@ def test_concat_bidirectional():
         [[1,2,1,2], [3,4,5,6]],
         [[5,6,3,4], [7,8,7,8]],
     ])
-    result = nn.concat_bidirectional(t)
+    result = nnutils.concat_bidirectional(t)
 
     assert(torch.equal(result, expected))
 
@@ -44,6 +44,6 @@ def test_dot_product():
             5*0 + 4*6 + 8*5
         ],
     ])
-    result = nn.dot_product_matrix(t, t2)
+    result = nnutils.dot_product_matrix(t, t2)
     assert(torch.equal(result, expected))
 

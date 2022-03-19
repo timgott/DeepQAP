@@ -1,5 +1,5 @@
 from torch_geometric.nn import Linear
-from drlqap.nn import FullyConnected, FullyConnectedShaped
+from drlqap.nnutils import FullyConnected, FullyConnectedShaped
 from torch.nn import ReLU
 
 def test_fully_connected_shape():
