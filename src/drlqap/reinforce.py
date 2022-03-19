@@ -6,9 +6,10 @@ from drlqap.qapenv import QAPEnv
 from drlqap.utils import IncrementalStats, Categorical2D
 
 class ReinforceAgent:
-    def __init__(self, policy_net, learning_rate=1e-3):
+    def __init__(self, policy_net, learning_rate=1e-3, use_baseline=True):
         self.policy_net = policy_net
         self.baseline = IncrementalStats()
+        self.use_baseline = use_baseline
 
         self.optimizer = torch.optim.Adam(
                 self.policy_net.parameters(),
@@ -61,7 +62,10 @@ class ReinforceAgent:
             for x in rewards:
                 self.baseline.add(x)
 
-            baselined_rewards = np.array(rewards) - self.baseline.mean()
+            if self.use_baseline:
+                baselined_rewards = np.array(rewards) - self.baseline.mean()
+            else:
+                baselined_rewards = np.array(rewards)
 
             # Compute accumulated rewards
             returns = utils.reverse_cumsum(baselined_rewards)

@@ -66,9 +66,10 @@ class DQNAgent:
         # Take sample from observations
         transitions = self.memory.sample(self.batch_size)
 
-        # batching is not possible with the ReinforceNet class at the moment :/
+        # batching is not possible with the network class at the moment :/
         loss_sum = torch.tensor(0.)
         criterion = torch.nn.SmoothL1Loss()
+        #criterion = torch.nn.MSELoss()
         for t in transitions:
             q = self.policy_net(t.state)[t.action]
             if t.next_state:
@@ -86,6 +87,8 @@ class DQNAgent:
         self.optimizer.zero_grad(set_to_none=True)
         loss.backward()
         self.optimizer.step()
+
+        return loss.item()
 
 
     def step(self, env: QAPEnv, epsilon):
@@ -120,7 +123,8 @@ class DQNAgent:
         if learn:
             self.episode_count += 1
             if self.episode_count % self.policy_update_every == 0:
-                self.optimize_policy()
+                loss = self.optimize_policy()
+                self.episode_stats["loss"] = loss
             if self.episode_count % self.target_update_every == 0:
                 self.target_net.load_state_dict(self.policy_net.state_dict())
 

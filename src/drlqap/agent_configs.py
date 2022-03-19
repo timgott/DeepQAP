@@ -223,6 +223,25 @@ def dqn_dense_tmn_rni_long():
     )
 
 @define_agent_config()
+def dqn_dense_tmn_tup():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        learning_rate=5e-4,
+        eps_decay=utils.decay_halflife(2000),
+        eps_end=0,
+        target_update_every=10
+    )
+
+@define_agent_config()
+def dqn_dense_tmn_eps0():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        learning_rate=5e-4,
+        eps_start=0,
+        eps_end=0,
+    )
+
+@define_agent_config()
 def reinforce_dense():
     return ReinforceAgent(
         dqn_nets.dense(32, 1, 2, layer_norm=True),
@@ -231,6 +250,13 @@ def reinforce_dense():
 
 @define_agent_config()
 def reinforce_dense_slow():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True),
+        learning_rate=1e-4,
+    )
+
+@define_agent_config(training_steps=30000)
+def reinforce_dense_slow_long():
     return ReinforceAgent(
         dqn_nets.dense(32, 1, 2, layer_norm=True),
         learning_rate=1e-4,
@@ -297,6 +323,14 @@ def reinforce_tmn_medium_long():
     return ReinforceAgent(
         dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
         learning_rate=1e-4,
+    )
+
+@define_agent_config(training_steps=30000)
+def reinforce_tmn_medium_long_nobl():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        learning_rate=1e-4,
+        use_baseline=False
     )
 
 @define_agent_config(training_steps=30000)
