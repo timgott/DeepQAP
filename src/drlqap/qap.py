@@ -90,8 +90,8 @@ class GraphAssignmentProblem(QAP):
             range = upper - lower
             return (array - lower) / range, lower, range
 
-        a = torch.tensor(nx.adjacency_matrix(graph_source).todense(), dtype=torch.float32)
-        b = torch.tensor(nx.adjacency_matrix(graph_target).todense(), dtype=torch.float32)
+        a = torch.tensor(nx.to_numpy_array(graph_source), dtype=torch.float32)
+        b = torch.tensor(nx.to_numpy_array(graph_target), dtype=torch.float32)
 
         self.value_scale = 1
         self.value_shift = 0
