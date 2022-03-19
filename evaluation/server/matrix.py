@@ -54,7 +54,7 @@ class MatrixDataSource():
         self.data_source.data = data
 
 
-def create_matrix_plot(source: MatrixDataSource, title, data_column=None, low=None, high=None):
+def create_matrix_plot(source: MatrixDataSource, title, data_column=None, low=None, high=None, tooltip_columns=[]):
     if len(source.value_columns) == 1:
         data_column = source.value_columns[0]
     elif data_column not in source.value_columns:
@@ -66,9 +66,8 @@ def create_matrix_plot(source: MatrixDataSource, title, data_column=None, low=No
         tools="hover",
         toolbar_location=None,
         tooltips=[
-            (data_column, "@" + data_column),
-            (source.i_column, "@" + source.i_column),
-            (source.j_column, "@" + source.j_column)
+            (col, "@" + col) 
+            for col in [data_column, *tooltip_columns, source.i_column, source.j_column]
         ],
         x_axis_location="above",
         x_axis_label=source.j_column,
