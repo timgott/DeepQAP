@@ -90,7 +90,7 @@ qaps_dropdown = Select(title="QAPLIB Problem", options=qap_generator_names, valu
 qaps_dropdown.on_change("value", qap_selected_callback)
 
 reset_button = Button(label="Reset", button_type="primary")
-reset_button.on_click(lambda: agent_state.reset_state())
+reset_button.on_click(lambda: agent_state.reset_env())
 
 probability_figure = create_matrix_plot(
     agent_state.probability_matrix_source,

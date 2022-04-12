@@ -12,9 +12,9 @@ import concurrent.futures
 from functools import partial
 
 class AgentState:
-    def __init__(self, qap: GraphAssignmentProblem, agent: ReinforceAgent) -> None:
+    def __init__(self, env: QAPEnv, agent: ReinforceAgent) -> None:
         self.agent = agent
-        self.env = QAPEnv(qap)
+        self.env = env
         self.compute_net_state()
 
     def has_policy_distribution(self):
@@ -51,6 +51,7 @@ class AgentStateViewModel:
         self.state: Optional[AgentState] = None
         self.agent = None
         self.qap: Optional[GraphAssignmentProblem] = None
+        self.env: Optional[QAPEnv] = None
 
         self.probability_matrix_source = MatrixDataSource('a', 'b', ['p', 'l'])
         self.node_embedding_sources = (
@@ -93,11 +94,11 @@ class AgentStateViewModel:
 
     def update_qap_state(self):
         # Compute QAP state
-        state = self.state
-        assert(state)
-        nodes_a = state.env.unassigned_a
-        nodes_b = state.env.unassigned_b
-        self.qap_viewmodel.update_qap(qap=state.qap, nodes_a=nodes_a, nodes_b=nodes_b)
+        env = self.env
+        assert(env)
+        nodes_a = env.unassigned_a
+        nodes_b = env.unassigned_b
+        self.qap_viewmodel.update_qap(qap=env.remaining_qap, nodes_a=nodes_a, nodes_b=nodes_b)
 
     def set_agent(self, agent):
         self.agent = agent
@@ -105,13 +106,18 @@ class AgentStateViewModel:
 
     def set_qap(self, qap):
         self.qap = qap
-        self.reset_state()
+        self.reset_env()
+
+    def reset_env(self):
+        if self.qap is not None:
+            self.env = QAPEnv(self.qap)
+            self.update_qap_state()
+            self.reset_state()
 
     def reset_state(self):
-        if self.qap is not None and self.agent is not None:
-            self.state = AgentState(self.qap, self.agent)
+        if self.env is not None and self.agent is not None:
+            self.state = AgentState(self.env, self.agent)
             self.update_state()
-            self.update_qap_state()
 
     def assignment_step(self, a, b):
         assert(self.state)
@@ -139,9 +145,6 @@ class QapStateViewModel:
         self.value_thread.start()
 
     def update_qap(self, qap, nodes_a, nodes_b):
-        if qap == self.qap:
-            return
-
         self.qap = qap
         self.nodes_a = nodes_a # Labels of nodes in A
         self.nodes_b = nodes_b # Labels of nodes in B
