@@ -242,6 +242,51 @@ def dqn_dense_tmn_eps0():
     )
 
 @define_agent_config()
+def dqn_dense_tmn_eps0_noln():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='transformed_mean'),
+        learning_rate=5e-4,
+        eps_start=0,
+        eps_end=0,
+    )
+
+@define_agent_config()
+def dqn_dense_nonorm_eps0():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm=None),
+        learning_rate=5e-4,
+        eps_start=0,
+        eps_end=0,
+    )
+
+@define_agent_config()
+def dqn_dense_ms_eps0():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
+        learning_rate=5e-4,
+        eps_start=0,
+        eps_end=0,
+    )
+
+@define_agent_config()
+def dqn_dense_ms100x_eps0():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
+        learning_rate=5e-4,
+        eps_start=0,
+        eps_end=0,
+    )
+
+@define_agent_config()
+def dqn_dense_tmn_ec_eps0():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='transformed_mean', use_edge_encoder=True, combined_transform=False),
+        learning_rate=5e-4,
+        eps_start=0,
+        eps_end=0,
+    )
+
+@define_agent_config()
 def reinforce_dense():
     return ReinforceAgent(
         dqn_nets.dense(32, 1, 2, layer_norm=True),
@@ -345,5 +390,41 @@ def reinforce_tmn_rni():
     return ReinforceAgent(
         dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean', random_start=True),
         learning_rate=1e-4,
+    )
+
+@define_agent_config(training_steps=30000)
+def reinforce_ms():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
+        learning_rate=1e-4,
+    )
+
+@define_agent_config(training_steps=30000)
+def reinforce_ms_wd():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
+        learning_rate=1e-4,
+        weight_decay=1e-4
+    )
+
+@define_agent_config(training_steps=30000)
+def reinforce_ms100x():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
+        learning_rate=1e-4,
+    )
+
+@define_agent_config(training_steps=30000)
+def reinforce_ms100x_fast():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
+        learning_rate=5e-4,
+    )
+
+@define_agent_config(training_steps=30000)
+def reinforce_ms100x_fast_deeper():
+    return ReinforceAgent(
+        dqn_nets.dense(32, 1, 4, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
+        learning_rate=5e-4,
     )
 

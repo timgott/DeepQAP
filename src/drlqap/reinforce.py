@@ -6,15 +6,16 @@ from drlqap.qapenv import QAPEnv
 from drlqap.utils import IncrementalStats, Categorical2D
 
 class ReinforceAgent:
-    def __init__(self, policy_net, learning_rate=1e-3, use_baseline=True):
+    def __init__(self, policy_net, learning_rate=1e-3, use_baseline=True, weight_decay=0):
         self.policy_net = policy_net
         self.baseline = IncrementalStats()
         self.use_baseline = use_baseline
 
         self.optimizer = torch.optim.Adam(
-                self.policy_net.parameters(),
-                lr=learning_rate
-                )
+            self.policy_net.parameters(),
+            lr=learning_rate,
+            weight_decay=weight_decay,
+        )
 
 
     def get_policy(self, qap: QAP):

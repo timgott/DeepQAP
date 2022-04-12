@@ -47,14 +47,17 @@ class RandomWeightsTaskGenerator(RandomTaskGenerator):
         super().__init__(random_qap)
 
 class LazyGlobTaskGenerator():
-    def __init__(self, glob, normalize=False):
+    def __init__(self, glob, normalize=False, filter=None):
         self.glob = glob
         self.normalize = normalize
         self.tasks = None
+        self.filter = filter
 
     def get_tasks(self):
         if self.tasks is None:
             self.tasks = load_qaplib_set(self.glob, normalize=True)
+            if self.filter:
+                self.tasks = [qap for qap in self.tasks if self.filter(qap)]
             assert self.tasks, f"No qap file matching {self.glob}"
         return self.tasks
 
@@ -84,4 +87,5 @@ generators = {
         for category in qaplib_categories
     },
     'qaplib_tai35a_normalized': LazyGlobTaskGenerator("tai35a.dat", normalize=False),
+    'qaplib_all_64_normalized': LazyGlobTaskGenerator("*.dat", normalize=False, filter=lambda qap: qap.size <= 64),
 }

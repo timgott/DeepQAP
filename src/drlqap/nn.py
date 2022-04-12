@@ -1,5 +1,5 @@
 import torch
-from torch.nn import LeakyReLU, ModuleList, LayerNorm
+from torch.nn import LeakyReLU, ModuleList, LayerNorm, Sequential, Parameter
 from torch_geometric.nn import to_hetero, Linear, GATv2Conv
 import torch.nn.functional as F
 from torch_geometric.data import HeteroData
@@ -152,6 +152,20 @@ class TransformedMeanNorm(torch.nn.Module):
         transformed_mean = F.relu(self.mean_linear(mean))
         return centered_x / stdev + transformed_mean
 
+class MeanSeparationLayer(torch.nn.Module):
+    def __init__(self, channels, residual_scale=1):
+        super().__init__()
+        self.mean_linear = torch.nn.Linear(channels, channels)
+        self.residual_linear = torch.nn.Linear(channels, channels)
+        self.residual_linear.weight.data.mul_(residual_scale)
+
+    def forward(self, x):
+        mean = torch.mean(x, dim=0)
+        residual = x - mean
+        transformed_mean = F.leaky_relu(self.mean_linear(mean))
+        transformed_residual = F.leaky_relu(self.residual_linear(residual))
+        return transformed_residual + transformed_mean
+
 class FullLayerNorm(torch.nn.Module):
     def forward(self, x):
         normalized_shape = x.shape
@@ -227,6 +241,10 @@ class QapConvLayer(torch.nn.Module):
                 return KeepMeanNorm()
             elif norm == 'transformed_mean':
                 return TransformedMeanNorm(w)
+            elif norm == 'mean_separation':
+                return MeanSeparationLayer(w)
+            elif norm == 'mean_separation_100x':
+                return MeanSeparationLayer(w, residual_scale=100)
             elif norm:
                 raise ValueError(f"Invalid norm {self.norm_type}")
             else:
@@ -271,25 +289,47 @@ class QapConvLayer(torch.nn.Module):
         return c
 
 
+class EdgeEncoderLayer(torch.nn.Module):
+    def __init__(self, bidirectional, channels, depth):
+        super().__init__()
+        input_channels = 2 if bidirectional else 1
+        self.fc = nnutils.FullyConnected(
+            input_channels=input_channels,
+            hidden_channels=channels,
+            output_channels=channels,
+            depth=depth,
+            activation=LeakyReLU,
+        )
+        self.bidirectional = bidirectional
+
+    def forward(self, edge_weights):
+        edge_vectors = edge_weights.unsqueeze(2)
+        if self.bidirectional:
+            # mirror edge weights to create swap-symmetrical tuples
+            edge_vectors = nnutils.concat_bidirectional(edge_vectors)
+        return self.fc(edge_vectors)
+
 
 class DenseQAPNet(torch.nn.Module):
     """
     Applies multiple QapConvLayers to a QAP.
     """
 
-    def __init__(self, embedding_width, encoder_depth, conv_depth, use_layer_norm, conv_norm, q_aggr, l_aggr, combined_transform, random_start) -> None:
+    def __init__(self, embedding_width, encoder_depth, conv_depth, use_layer_norm, conv_norm, q_aggr, l_aggr, combined_transform, random_start, use_edge_encoder, bidirectional) -> None:
         super().__init__()
 
         w = embedding_width
+        edge_width = w if use_edge_encoder else 1
+        initial_w = w if random_start else 0
+
         conv_kwargs = dict(conv_norm=conv_norm, q_aggr=q_aggr, l_aggr=l_aggr, combined_transform=combined_transform)
-        initial_w = 1 if not random_start else 1 + w
         self.a_layers = ModuleList(
-            [QapConvLayer(initial_w, w, encoder_depth, **conv_kwargs)] +
-            [QapConvLayer(1 + w, w, encoder_depth, **conv_kwargs) for _ in range(conv_depth - 1)],
+            [QapConvLayer(edge_width + initial_w, w, encoder_depth, **conv_kwargs)] +
+            [QapConvLayer(edge_width + w, w, encoder_depth, **conv_kwargs) for _ in range(conv_depth - 1)],
         )
         self.b_layers = ModuleList(
-            [QapConvLayer(initial_w, w, encoder_depth, **conv_kwargs)] +
-            [QapConvLayer(1 + w, w, encoder_depth, **conv_kwargs) for _ in range(conv_depth - 1)],
+            [QapConvLayer(edge_width + initial_w, w, encoder_depth, **conv_kwargs)] +
+            [QapConvLayer(edge_width + w, w, encoder_depth, **conv_kwargs) for _ in range(conv_depth - 1)],
         )
         if use_layer_norm:
             self.pair_norm = LayerNorm(w*2)
@@ -298,6 +338,13 @@ class DenseQAPNet(torch.nn.Module):
         self.link_probability_net = FullyConnectedLinearOut(w * 2, w, 1, 3, activation=LeakyReLU, layer_norm=False)
         self.random_start = random_start
         self.embedding_width = embedding_width
+
+        assert(not (bidirectional and not use_edge_encoder))
+        self.use_edge_encoder = use_edge_encoder
+        if use_edge_encoder:
+            self.a_edge_encoder = EdgeEncoderLayer(bidirectional, w, 2)
+            self.b_edge_encoder = EdgeEncoderLayer(bidirectional, w, 2)
+            self.l_edge_encoder = EdgeEncoderLayer(bidirectional, w, 2)
 
     def compute_link_values(self, embeddings_a, embeddings_b):
         if self.link_probability_net:
@@ -310,10 +357,14 @@ class DenseQAPNet(torch.nn.Module):
             return nnutils.dot_product_matrix(embeddings_a, embeddings_b)
 
     def forward(self, qap: QAP) -> torch.Tensor:
-        # TODO: support directed A and B by using concat_bidirectional
-        A = qap.A.unsqueeze(2) # Convert weights into 1-dim vectors
-        B = qap.B.unsqueeze(2)
-        L = qap.linear_costs.unsqueeze(2)
+        if self.use_edge_encoder:
+            A = self.a_edge_encoder(qap.A)
+            B = self.b_edge_encoder(qap.B)
+            L = self.l_edge_encoder(qap.linear_costs)
+        else:
+            A = qap.A.unsqueeze(2) # Convert weights into 1-dim vectors
+            B = qap.B.unsqueeze(2)
+            L = qap.linear_costs.unsqueeze(2)
 
         # Node embeddings
         if self.random_start:

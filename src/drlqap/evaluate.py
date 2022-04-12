@@ -56,25 +56,29 @@ def evaluate_one(agent, eval_qap):
     compute_optimum = eval_qap.size < 10
     if compute_optimum:
         print("Finding optimum...")
-        optimal_value, optimal_assignment = solve_qap_backtracking(eval_qap)
+        optimal_value_scaled, optimal_assignment = solve_qap_backtracking(eval_qap)
+        optimal_value = eval_qap.compute_unscaled_value(optimal_assignment)
 
     print("Comparison:")
     print("Random:", stat_string(random_value))
     print("Agent:", stat_string(agent_value))
-    print("Sample agent assignment:",agent.solve(eval_qap))
+
+    agent_value_scaled, agent_assignment = agent.solve(eval_qap)
+    agent_value = eval_qap.compute_unscaled_value(agent_assignment)
+    print(f"Sample agent assignment: {agent_value:.4f} {agent_assignment}")
 
     if compute_optimum:
-        print("Optimal:", optimal_value, optimal_assignment)
+        print(f"Optimal: {optimal_value:.4f} (with norm: {optimal_value_scaled:.4f}) {optimal_assignment}")
 
 def stat_string(values):
-    return f"mean: {np.mean(values)}; min: {np.min(values)}; max: {np.max(values)}"
+    return f"mean: {np.mean(values):.4f}; min: {np.min(values):.4f}; max: {np.max(values):.4f}"
 
 def compute_gaps(values, target_values):
     assert(len(values) == len(target_values))
     return [(v - t) / t for v, t in zip(values, target_values)]
 
 def evaluate_set(agent, eval_set):
-    samples = 10
+    samples = 1000
     print("Tasks:", len(eval_set))
     print("Samples per task:", samples)
 

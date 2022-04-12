@@ -95,7 +95,7 @@ class BidirectionalDense(torch.nn.Module):
     def __init__(self, inner) -> None:
         super().__init__()
         self.inner = inner
-    
+
     def forward(self, matrix):
         # mirror edge weights to create swap-symmetrical tuples
         bidirectional_matrix = concat_bidirectional(matrix.unsqueeze(2))
