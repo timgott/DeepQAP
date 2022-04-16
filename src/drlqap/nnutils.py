@@ -1,6 +1,5 @@
 import torch
-from torch.nn import Sequential, LayerNorm
-from torch_geometric.nn import Linear
+from torch.nn import Sequential, LayerNorm, Linear
 
 def concat_bidirectional(dense_edge_features: torch.Tensor) -> torch.Tensor:
     """

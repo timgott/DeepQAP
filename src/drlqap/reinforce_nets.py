@@ -1,6 +1,5 @@
 from torch.nn import ELU, Sequential, LayerNorm
 from drlqap import nn
-import torch_geometric
 
 identity_encoder = lambda x: x
 
