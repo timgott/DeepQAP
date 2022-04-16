@@ -268,6 +268,7 @@ def dqn_dense_ms_eps0():
         eps_end=0,
     )
 
+# worse than plain dqn_dense_ms_eps0
 @define_agent_config()
 def dqn_dense_ms100x_eps0():
     return DQNAgent(
@@ -281,6 +282,15 @@ def dqn_dense_ms100x_eps0():
 def dqn_dense_tmn_ec_eps0():
     return DQNAgent(
         dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='transformed_mean', use_edge_encoder=True, combined_transform=False),
+        learning_rate=5e-4,
+        eps_start=0,
+        eps_end=0,
+    )
+
+@define_agent_config()
+def dqn_dense_ms_ec_eps0():
+    return DQNAgent(
+        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
         learning_rate=5e-4,
         eps_start=0,
         eps_end=0,
