@@ -1,74 +1,20 @@
-from torch.nn.functional import layer_norm
-from drlqap import reinforce_nets
 from drlqap.dqn import DQNAgent
 from drlqap.reinforce import ReinforceAgent
 from drlqap import dqn_nets
 from drlqap import utils
-import drlqap.nn
 
 agents = dict()
 agent_training_steps = dict()
 
 def define_agent_config(training_steps=10000):
-    def decorator(f):
-        name = f.__name__
+    def decorator(f, name=None):
+        name = name or f.__name__
         assert name not in agents
         agents[name] = f
         agent_training_steps[name] = training_steps
         return f
     return decorator
 
-@define_agent_config()
-def reinforce_simple_histogram():
-    return ReinforceAgent(reinforce_nets.link_prediction_only_undirected(32,64,3))
-
-@define_agent_config()
-def reinforce_simple_node_embeddings():
-    return ReinforceAgent(reinforce_nets.simple_node_embeddings_undirected(32,32,64,3))
-
-@define_agent_config()
-def reinforce_simple_node_embeddings_normalized():
-    return ReinforceAgent(reinforce_nets.simple_node_embeddings_undirected(32,32,64,3,normalize_embeddings=True))
-
-@define_agent_config()
-def reinforce_gat():
-    return ReinforceAgent(reinforce_nets.mp_gat(64,32,32,3))
-
-@define_agent_config()
-def reinforce_gat_low_lr():
-    return ReinforceAgent(reinforce_nets.mp_gat(64,32,32,3), learning_rate=1e-5)
-
-@define_agent_config()
-def reinforce_gat_histogram():
-    return ReinforceAgent(reinforce_nets.mp_histogram_gat(64,32,3))
-
-@define_agent_config()
-def reinforce_gat_histogram_shallow():
-    return ReinforceAgent(reinforce_nets.mp_histogram_gat(64,32,1))
-
-@define_agent_config()
-def dqn_gat():
-    return DQNAgent(dqn_nets.mp_gat(64,32,32,3), eps_decay=3465.7)
-
-@define_agent_config()
-def dqn_gat_histogram():
-    return DQNAgent(dqn_nets.mp_histogram_gat(64,32,3), learning_rate=1e-2)
-
-@define_agent_config()
-def dqn_gat_histogram_lower_lr():
-    return DQNAgent(dqn_nets.mp_histogram_gat(64,32,3), learning_rate=1e-3)
-
-@define_agent_config()
-def dqn_gat_histogram_low_lr():
-    return DQNAgent(dqn_nets.mp_histogram_gat(64,32,3), learning_rate=1e-4)
-
-@define_agent_config()
-def dqn_gat_histogram_low_epsilon():
-    return DQNAgent(
-        dqn_nets.mp_histogram_gat(64,32,3),
-        learning_rate=1e-3,
-        eps_decay=utils.decay_halflife(1000)
-    )
 
 @define_agent_config()
 def dqn_simple_lp():
@@ -84,15 +30,6 @@ def dqn_simpler_lp():
         dqn_nets.simple_link_prediction_undirected(8,32,3),
         learning_rate=1e-4,
         eps_decay=utils.decay_halflife(2000)
-    )
-
-@define_agent_config()
-def dqn_gat_no_lp():
-    return DQNAgent(
-        dqn_nets.mp_gat_no_lp(64,32,32,3),
-        learning_rate=1e-3,
-        eps_decay=utils.decay_halflife(2000),
-        eps_end=0
     )
 
 @define_agent_config()
@@ -288,10 +225,10 @@ def dqn_dense_tmn_ec_eps0():
     )
 
 @define_agent_config()
-def dqn_dense_ms_ec_eps0():
+def dqn_dense_ms_ec_eps0(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2):
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
-        learning_rate=5e-4,
+        dqn_nets.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
+        learning_rate=learning_rate,
         eps_start=0,
         eps_end=0,
     )
@@ -418,10 +355,11 @@ def reinforce_ms_wd():
     )
 
 @define_agent_config(training_steps=30000)
-def reinforce_ms100x():
+def reinforce_ms100x(learning_rate=1e-4, gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0):
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
-        learning_rate=1e-4,
+        dqn_nets.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
+        learning_rate=learning_rate,
+        weight_decay=weight_decay
     )
 
 @define_agent_config(training_steps=30000)
