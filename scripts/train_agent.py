@@ -20,7 +20,7 @@ def main():
     parser.add_argument('experiment_path', type=Path, help="Output folder")
     parser.add_argument('agent_name', type=str, help="Agent configuration name")
     parser.add_argument('task_name', type=str, help="Output folder")
-    parser.add_argument('--seed', type=Path, default=0, help="Seed for random number generator (default 0)")
+    parser.add_argument('--seed', type=int, default=0, help="Seed for random number generator (default 0)")
     parser.add_argument('--steps', type=int, default=None, help="Override number of training steps")
 
     # Some generic tunable arguments to avoid too many configurations
