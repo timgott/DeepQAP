@@ -75,3 +75,29 @@ def run_experiment_from_config(experiment_path, agent_name, task_name, agent_arg
         seed=seed
     )
 
+
+def load_metadata(experiment_path):
+    """
+    Parses the metadata file of the experiment.
+    """
+    try:
+        with open(experiment_path / "metadata.json") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # Backwards compatibility
+        metadata = {}
+        with open(experiment_path / "agenttype") as f:
+            metadata["agent_type"] = f.read().strip()
+        with open(experiment_path / "trainingtask") as f:
+            metadata["training_task"] = f.read().strip()
+        with open(experiment_path / "seed") as f:
+            metadata["seed"] = int(f.read())
+        return metadata
+
+
+# Helper functions to determine label automatically
+def get_overlapping_keys(dicts):
+    return [key for key, _ in set.intersection(*(set(d.items()) for d in dicts))]
+
+def get_key_value_string(dict, ignored_keys):
+    return ", ".join(sorted([f'{key}: {dict[key]}' for key in dict if key not in ignored_keys]))
