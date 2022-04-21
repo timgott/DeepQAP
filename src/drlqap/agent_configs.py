@@ -1,6 +1,7 @@
 from drlqap.dqn import DQNAgent
 from drlqap.reinforce import ReinforceAgent
-from drlqap import dqn_nets
+from drlqap.actor_critic import A2CAgent
+from drlqap import nn_configs
 from drlqap import utils
 
 agents = dict()
@@ -19,7 +20,7 @@ def define_agent_config(training_steps=10000):
 @define_agent_config()
 def dqn_simple_lp():
     return DQNAgent(
-        dqn_nets.simple_link_prediction_undirected(64,32,3),
+        nn_configs.simple_link_prediction_undirected(64,32,3),
         learning_rate=1e-3,
         eps_decay=utils.decay_halflife(2000)
     )
@@ -27,7 +28,7 @@ def dqn_simple_lp():
 @define_agent_config()
 def dqn_simpler_lp():
     return DQNAgent(
-        dqn_nets.simple_link_prediction_undirected(8,32,3),
+        nn_configs.simple_link_prediction_undirected(8,32,3),
         learning_rate=1e-4,
         eps_decay=utils.decay_halflife(2000)
     )
@@ -35,7 +36,7 @@ def dqn_simpler_lp():
 @define_agent_config()
 def dqn_dense():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True),
+        nn_configs.dense(32, 1, 2, layer_norm=True),
         learning_rate=5e-4,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0
@@ -44,7 +45,7 @@ def dqn_dense():
 @define_agent_config()
 def dqn_dense_learnmore():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True),
+        nn_configs.dense(32, 1, 2, layer_norm=True),
         learning_rate=5e-4,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0,
@@ -54,7 +55,7 @@ def dqn_dense_learnmore():
 @define_agent_config()
 def dqn_dense_3_0():
     return DQNAgent(
-        dqn_nets.dense(32, 0, 3, layer_norm=True),
+        nn_configs.dense(32, 0, 3, layer_norm=True),
         learning_rate=5e-4,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0
@@ -63,7 +64,7 @@ def dqn_dense_3_0():
 @define_agent_config()
 def dqn_dense_max():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, l_aggr='min', q_aggr='max'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, l_aggr='min', q_aggr='max'),
         learning_rate=5e-4,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0
@@ -72,7 +73,7 @@ def dqn_dense_max():
 @define_agent_config()
 def dqn_dense_no_c():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, combined_transform=False),
+        nn_configs.dense(32, 1, 2, layer_norm=True, combined_transform=False),
         learning_rate=5e-4,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0
@@ -81,7 +82,7 @@ def dqn_dense_no_c():
 @define_agent_config(training_steps=50000)
 def dqn_dense_no_c_long():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, combined_transform=False),
+        nn_configs.dense(32, 1, 2, layer_norm=True, combined_transform=False),
         learning_rate=5e-4,
         eps_decay=utils.decay_through(50000, 0.005),
         eps_end=0
@@ -90,7 +91,7 @@ def dqn_dense_no_c_long():
 @define_agent_config()
 def dqn_dense_bn():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='batch_norm'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='batch_norm'),
         learning_rate=5e-4,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0
@@ -99,7 +100,7 @@ def dqn_dense_bn():
 @define_agent_config()
 def dqn_dense_bn_lr_up():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='batch_norm'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='batch_norm'),
         learning_rate=5e-3,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0
@@ -108,7 +109,7 @@ def dqn_dense_bn_lr_up():
 @define_agent_config()
 def dqn_dense_kmn():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='keep_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='keep_mean'),
         learning_rate=5e-4,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0
@@ -117,7 +118,7 @@ def dqn_dense_kmn():
 @define_agent_config()
 def dqn_dense_tmn():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
         learning_rate=5e-4,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0
@@ -126,7 +127,7 @@ def dqn_dense_tmn():
 @define_agent_config()
 def dqn_dense_tmn_slower():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
         learning_rate=1e-5,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0
@@ -135,7 +136,7 @@ def dqn_dense_tmn_slower():
 @define_agent_config(training_steps=30000)
 def dqn_dense_tmn_slow_long():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
         learning_rate=5e-5,
         eps_decay=utils.decay_through(30000, 0.01),
         eps_end=0
@@ -144,7 +145,7 @@ def dqn_dense_tmn_slow_long():
 @define_agent_config()
 def dqn_dense_tmn_rni():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean', random_start=True),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean', random_start=True),
         learning_rate=5e-4,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0
@@ -153,7 +154,7 @@ def dqn_dense_tmn_rni():
 @define_agent_config(training_steps=30000)
 def dqn_dense_tmn_rni_long():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean', random_start=True),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean', random_start=True),
         learning_rate=5e-5,
         eps_decay=utils.decay_through(30000, 0.01),
         eps_end=0
@@ -162,7 +163,7 @@ def dqn_dense_tmn_rni_long():
 @define_agent_config()
 def dqn_dense_tmn_tup():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
         learning_rate=5e-4,
         eps_decay=utils.decay_halflife(2000),
         eps_end=0,
@@ -172,7 +173,7 @@ def dqn_dense_tmn_tup():
 @define_agent_config()
 def dqn_dense_tmn_eps0():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
         learning_rate=5e-4,
         eps_start=0,
         eps_end=0,
@@ -181,7 +182,7 @@ def dqn_dense_tmn_eps0():
 @define_agent_config()
 def dqn_dense_tmn_eps0_noln():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='transformed_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=False, conv_norm='transformed_mean'),
         learning_rate=5e-4,
         eps_start=0,
         eps_end=0,
@@ -190,7 +191,7 @@ def dqn_dense_tmn_eps0_noln():
 @define_agent_config()
 def dqn_dense_nonorm_eps0():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm=None),
+        nn_configs.dense(32, 1, 2, layer_norm=False, conv_norm=None),
         learning_rate=5e-4,
         eps_start=0,
         eps_end=0,
@@ -199,7 +200,7 @@ def dqn_dense_nonorm_eps0():
 @define_agent_config()
 def dqn_dense_ms_eps0():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
+        nn_configs.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
         learning_rate=5e-4,
         eps_start=0,
         eps_end=0,
@@ -209,7 +210,7 @@ def dqn_dense_ms_eps0():
 @define_agent_config()
 def dqn_dense_ms100x_eps0():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
+        nn_configs.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
         learning_rate=5e-4,
         eps_start=0,
         eps_end=0,
@@ -218,7 +219,7 @@ def dqn_dense_ms100x_eps0():
 @define_agent_config()
 def dqn_dense_tmn_ec_eps0():
     return DQNAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='transformed_mean', use_edge_encoder=True, combined_transform=False),
+        nn_configs.dense(32, 1, 2, layer_norm=False, conv_norm='transformed_mean', use_edge_encoder=True, combined_transform=False),
         learning_rate=5e-4,
         eps_start=0,
         eps_end=0,
@@ -227,7 +228,7 @@ def dqn_dense_tmn_ec_eps0():
 @define_agent_config()
 def dqn_dense_ms_ec_eps0(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2):
     return DQNAgent(
-        dqn_nets.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
+        nn_configs.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
         learning_rate=learning_rate,
         eps_start=0,
         eps_end=0,
@@ -236,91 +237,91 @@ def dqn_dense_ms_ec_eps0(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_de
 @define_agent_config()
 def reinforce_dense():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True),
+        nn_configs.dense(32, 1, 2, layer_norm=True),
         learning_rate=5e-4,
     )
 
 @define_agent_config()
 def reinforce_dense_slow():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True),
+        nn_configs.dense(32, 1, 2, layer_norm=True),
         learning_rate=1e-4,
     )
 
 @define_agent_config(training_steps=30000)
 def reinforce_dense_slow_long():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True),
+        nn_configs.dense(32, 1, 2, layer_norm=True),
         learning_rate=1e-4,
     )
 
 @define_agent_config()
 def reinforce_dense_3_0():
     return ReinforceAgent(
-        dqn_nets.dense(32, 0, 3, layer_norm=True),
+        nn_configs.dense(32, 0, 3, layer_norm=True),
         learning_rate=5e-4,
     )
 
 @define_agent_config()
 def reinforce_dense_3_0_slower():
     return ReinforceAgent(
-        dqn_nets.dense(32, 0, 3, layer_norm=True),
+        nn_configs.dense(32, 0, 3, layer_norm=True),
         learning_rate=1e-5,
     )
 
 @define_agent_config()
 def reinforce_dense_3_0_faster():
     return ReinforceAgent(
-        dqn_nets.dense(32, 0, 3, layer_norm=True),
+        nn_configs.dense(32, 0, 3, layer_norm=True),
         learning_rate=1e-3,
     )
 
 @define_agent_config()
 def reinforce_dense_tmn():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
         learning_rate=1e-3,
     )
 
 @define_agent_config()
 def reinforce_dense_bn():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='batch_norm'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='batch_norm'),
         learning_rate=1e-4,
     )
 
 @define_agent_config()
 def reinforce_dense_bn_lr2():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='batch_norm'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='batch_norm'),
         learning_rate=1e-3,
     )
 
 @define_agent_config(training_steps=30000)
 def reinforce_tmn_slow_long():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
         learning_rate=1e-5,
     )
 
 @define_agent_config(training_steps=30000)
 def reinforce_tmn_fast_long():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
         learning_rate=1e-3,
     )
 
 @define_agent_config(training_steps=30000)
 def reinforce_tmn_medium_long():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
         learning_rate=1e-4,
     )
 
 @define_agent_config(training_steps=30000)
 def reinforce_tmn_medium_long_nobl():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
         learning_rate=1e-4,
         use_baseline=False
     )
@@ -328,28 +329,28 @@ def reinforce_tmn_medium_long_nobl():
 @define_agent_config(training_steps=30000)
 def reinforce_tmn_slower_long():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean'),
         learning_rate=1e-6,
     )
 
 @define_agent_config(training_steps=30000)
 def reinforce_tmn_rni():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean', random_start=True),
+        nn_configs.dense(32, 1, 2, layer_norm=True, conv_norm='transformed_mean', random_start=True),
         learning_rate=1e-4,
     )
 
 @define_agent_config(training_steps=30000)
 def reinforce_ms():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
+        nn_configs.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
         learning_rate=1e-4,
     )
 
 @define_agent_config(training_steps=30000)
 def reinforce_ms_wd():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
+        nn_configs.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
         learning_rate=1e-4,
         weight_decay=1e-4
     )
@@ -357,7 +358,7 @@ def reinforce_ms_wd():
 @define_agent_config(training_steps=30000)
 def reinforce_ms100x(learning_rate=1e-4, gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0):
     return ReinforceAgent(
-        dqn_nets.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
+        nn_configs.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
         learning_rate=learning_rate,
         weight_decay=weight_decay
     )
@@ -365,14 +366,22 @@ def reinforce_ms100x(learning_rate=1e-4, gnn_depth=2, mlp_depth=1, hidden_size=3
 @define_agent_config(training_steps=30000)
 def reinforce_ms100x_fast():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
+        nn_configs.dense(32, 1, 2, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
         learning_rate=5e-4,
     )
 
 @define_agent_config(training_steps=30000)
 def reinforce_ms100x_fast_deeper():
     return ReinforceAgent(
-        dqn_nets.dense(32, 1, 4, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
+        nn_configs.dense(32, 1, 4, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
         learning_rate=5e-4,
     )
 
+@define_agent_config()
+def a2c_the_first():
+    return A2CAgent(
+        nn_configs.mpgnn_pairs(32, 1, 2, use_edge_encoder=True),
+        nn_configs.mpgnn_global(32, 1, 2, use_edge_encoder=True),
+        p_learning_rate=5e-4,
+        c_learning_rate=5e-4,
+    )

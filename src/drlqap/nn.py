@@ -197,9 +197,13 @@ class EdgeEncoderLayer(torch.nn.Module):
         return self.fc(edge_vectors)
 
 
+# Original not modular enough network
+
 class DenseQAPNet(torch.nn.Module):
     """
-    Applies multiple QapConvLayers to a QAP.
+    Kept only for backwards compatibility to avoid breaking old runs.
+
+    Applies multiple QapConvLayers to a QAP, then applies a MLP to all pairs and outputs the result. 
     """
 
     def __init__(self, embedding_width, encoder_depth, conv_depth, use_layer_norm, conv_norm, q_aggr, l_aggr, combined_transform, random_start, use_edge_encoder, bidirectional) -> None:
@@ -274,3 +278,106 @@ class DenseQAPNet(torch.nn.Module):
         self.embeddings_b = b
 
         return self.compute_link_values(a, b)
+
+
+# New modular classes
+
+class DenseQAPEncoder(torch.nn.Module):
+    """
+    Applies multiple QapConvLayers to a QAP. Outputs node embeddings without applying the pair network.
+    """
+
+    def __init__(self, embedding_width, encoder_depth, conv_depth, conv_norm, q_aggr, l_aggr, combined_transform, random_start, use_edge_encoder, bidirectional) -> None:
+        super().__init__()
+
+        w = embedding_width
+        edge_width = w if use_edge_encoder else 1
+        initial_w = w if random_start else 0
+
+        conv_kwargs = dict(conv_norm=conv_norm, q_aggr=q_aggr, l_aggr=l_aggr, combined_transform=combined_transform)
+        self.a_layers = ModuleList(
+            [QapConvLayer(edge_width + initial_w, w, encoder_depth, **conv_kwargs)] +
+            [QapConvLayer(edge_width + w, w, encoder_depth, **conv_kwargs) for _ in range(conv_depth - 1)],
+        )
+        self.b_layers = ModuleList(
+            [QapConvLayer(edge_width + initial_w, w, encoder_depth, **conv_kwargs)] +
+            [QapConvLayer(edge_width + w, w, encoder_depth, **conv_kwargs) for _ in range(conv_depth - 1)],
+        )
+        self.random_start = random_start
+        self.embedding_width = embedding_width
+
+        assert(not (bidirectional and not use_edge_encoder))
+        self.use_edge_encoder = use_edge_encoder
+        if use_edge_encoder:
+            self.a_edge_encoder = EdgeEncoderLayer(bidirectional, w, 2)
+            self.b_edge_encoder = EdgeEncoderLayer(bidirectional, w, 2)
+            self.l_edge_encoder = EdgeEncoderLayer(bidirectional, w, 2)
+
+    def forward(self, A, B, L):
+        if self.use_edge_encoder:
+            A = self.a_edge_encoder(A)
+            B = self.b_edge_encoder(B)
+            L = self.l_edge_encoder(L)
+        else:
+            A = A.unsqueeze(2) # Convert weights into 1-dim vectors
+            B = B.unsqueeze(2)
+            L = L.unsqueeze(2)
+
+        # Node embeddings
+        if self.random_start:
+            a = torch.rand(A.size(0), self.embedding_width)
+            b = torch.rand(B.size(0), self.embedding_width)
+        else:
+            a = None
+            b = None
+
+        # Apply each conv layer
+        for layer_a, layer_b in zip(self.a_layers, self.b_layers):
+            new_a = layer_a(A, L, a, b)
+            new_b = layer_b(B, L.transpose(0, 1), b, a)
+
+            a = new_a
+            b = new_b
+
+        # Store embeddings for debugging
+        self.embeddings_a = a
+        self.embeddings_b = b
+        return a, b
+
+
+class PairValueHead(torch.nn.Module):
+    def __init__(self, embedding_width, depth):
+        super().__init__()
+        w = embedding_width * 2
+        h = embedding_width
+        self.transform = FullyConnectedLinearOut(w, h, 1, depth, activation=LeakyReLU, layer_norm=False)
+
+    def forward(self, embeddings_a, embeddings_b):
+        pairs = nnutils.cartesian_product_matrix(embeddings_a, embeddings_b)
+        probs = self.transform(pairs)
+        n, m = embeddings_a.size(0), embeddings_b.size(0)
+        return probs.reshape((n, m))
+
+
+class GlobalValueHead(torch.nn.Module):
+    def __init__(self, embedding_width, depth):
+        super().__init__()
+        w = embedding_width
+        h = embedding_width
+        self.transform = FullyConnectedLinearOut(w, h, 1, depth, activation=LeakyReLU, layer_norm=False)
+
+    def forward(self, embeddings_a, embeddings_b):
+        global_embedding = embeddings_a.sum(dim=0) + embeddings_b.sum(dim=0)
+        return self.transform(global_embedding).squeeze()
+
+
+class QAPNet(torch.nn.Module):
+    def __init__(self, encoder, head):
+        super().__init__()
+        self.encoder = encoder
+        self.head = head
+
+    def forward(self, qap: QAP):
+        a, b = self.encoder(qap.A, qap.B, qap.linear_costs)
+        return self.head(a, b)
+

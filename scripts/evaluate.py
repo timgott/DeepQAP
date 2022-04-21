@@ -6,8 +6,8 @@ import math
 from drlqap.dqn import DQNAgent
 from drlqap.qap import GraphAssignmentProblem
 from drlqap.simplesolver import solve_qap_backtracking
-from drlqap import taskgenerators
-from drlqap import agent_configs
+from drlqap import taskgenerators, agent_configs
+import drlqap.experiment
 
 
 def random_assignment(qap: GraphAssignmentProblem):
@@ -119,14 +119,15 @@ def main():
 
     checkpoint_path = sys.argv[1]
 
-    agent_name = (Path(checkpoint_path).parent / "agenttype").read_text().strip()
+    metadata = drlqap.experiment.load_metadata(Path(checkpoint_path).parent)
+    agent_name = metadata['agent_type']
     agent = agent_configs.agents[agent_name]()
     agent.load_checkpoint(sys.argv[1])
 
     if len(sys.argv) >= 3:
         problem_generator_name = sys.argv[2]
     else:
-        problem_generator_name = (Path(checkpoint_path).parent / "trainingtask").read_text().strip()
+        problem_generator_name = metadata['training_task']
 
     print(f"Evaluating agent '{agent_name}' on task '{problem_generator_name}'")
 
