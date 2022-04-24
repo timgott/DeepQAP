@@ -378,10 +378,23 @@ def reinforce_ms100x_fast_deeper():
     )
 
 @define_agent_config()
-def a2c_the_first():
+def a2c(learning_rate=5e-4, gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0):
     return A2CAgent(
-        nn_configs.mpgnn_pairs(32, 1, 2, use_edge_encoder=True),
-        nn_configs.mpgnn_global(32, 1, 2, use_edge_encoder=True),
-        p_learning_rate=5e-4,
-        c_learning_rate=5e-4,
+        nn_configs.mpgnn_pairs(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True),
+        nn_configs.mpgnn_global(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True),
+        p_learning_rate=learning_rate,
+        c_learning_rate=learning_rate,
+        p_weight_decay=weight_decay,
+        c_weight_decay=weight_decay
+    )
+
+@define_agent_config()
+def a2c_ms100x(learning_rate=5e-4, gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0):
+    return A2CAgent(
+        nn_configs.mpgnn_pairs(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True, conv_norm='mean_separation_100x'),
+        nn_configs.mpgnn_global(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True),
+        p_learning_rate=learning_rate,
+        c_learning_rate=learning_rate,
+        p_weight_decay=weight_decay,
+        c_weight_decay=weight_decay
     )
