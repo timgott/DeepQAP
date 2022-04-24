@@ -90,8 +90,11 @@ def load_metadata(experiment_path):
             metadata["agent_type"] = f.read().strip()
         with open(experiment_path / "trainingtask") as f:
             metadata["training_task"] = f.read().strip()
-        with open(experiment_path / "seed") as f:
-            metadata["seed"] = int(f.read())
+        try:
+            with open(experiment_path / "seed") as f:
+                metadata["seed"] = int(f.read())
+        except FileNotFoundError:
+            metadata["seed"] = 0
         return metadata
 
 

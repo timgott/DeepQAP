@@ -5,19 +5,19 @@ from pathlib import Path
 from ipywidgets import interact
 from natsort import natsorted
 from drlqap import agent_configs
+import drlqap.experiment
 
 def load_checkpoints(path_prefix: Path):
     agents = []
-    with open(path_prefix / "agenttype") as f:
-        agent_type = f.read().strip()
-    agent_constructor = agent_configs.agents[agent_type]
+    metadata = drlqap.experiment.load_metadata(path_prefix)
+    agent_constructor = agent_configs.agents[metadata['agent_type']]
     for fname in natsorted(path_prefix.glob("checkpoint_*.pth"), key=lambda p: str(p)):
         print(fname)
         a = agent_constructor()
         a.load_checkpoint(fname)
         a.checkpoint_name = fname.stem
         agents.append(a)
-    
+
     return agents
 
 def load_float_txt(path: Path):

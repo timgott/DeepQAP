@@ -13,8 +13,8 @@ from drlqap.evaltools import load_checkpoints, load_float_txt
 from matrix import create_matrix_plot
 from agentstate import AgentStateViewModel
 
-runs_root = Path("runs")
-agent_folders = list(p.parent for p in runs_root.glob("**/agenttype"))
+runs_root = Path("quickruns")
+agent_folders = list(p.parent for p in runs_root.glob("**/value.txt"))
 qap_generators = drlqap.taskgenerators.generators
 qap_generator_names = list(qap_generators.keys())
 

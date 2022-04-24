@@ -339,9 +339,6 @@ class DenseQAPEncoder(torch.nn.Module):
             a = new_a
             b = new_b
 
-        # Store embeddings for debugging
-        self.embeddings_a = a
-        self.embeddings_b = b
         return a, b
 
 
@@ -379,5 +376,10 @@ class QAPNet(torch.nn.Module):
 
     def forward(self, qap: QAP):
         a, b = self.encoder(qap.A, qap.B, qap.linear_costs)
+
+        # Store embeddings for debugging
+        self.embeddings_a = a
+        self.embeddings_b = b
+
         return self.head(a, b)
 
