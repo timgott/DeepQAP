@@ -226,9 +226,9 @@ def dqn_dense_tmn_ec_eps0():
     )
 
 @define_agent_config()
-def dqn_dense_ms_ec_eps0(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2):
+def dqn_dense_ms_ec_eps0(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, random_start=False):
     return DQNAgent(
-        nn_configs.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False),
+        nn_configs.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False, random_start=random_start),
         learning_rate=learning_rate,
         eps_start=0,
         eps_end=0,
