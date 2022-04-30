@@ -13,7 +13,7 @@ def load_checkpoints(path_prefix: Path):
     agent_constructor = agent_configs.agents[metadata['agent_type']]
     for fname in natsorted(path_prefix.glob("checkpoint_*.pth"), key=lambda p: str(p)):
         print(fname)
-        a = agent_constructor()
+        a = agent_constructor(**metadata['agent_arguments'])
         a.load_checkpoint(fname)
         a.checkpoint_name = fname.stem
         agents.append(a)

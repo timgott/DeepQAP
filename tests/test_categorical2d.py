@@ -1,4 +1,4 @@
-from drlqap.utils import Categorical2D
+from drlqap.policies import Categorical2D
 import torch
 import pytest
 import numpy as np

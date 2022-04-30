@@ -2,9 +2,10 @@ from drlqap.qap import QAP
 from typing import Union, List
 import numpy as np
 import random
+import torch
 
 
-class QAPEnv:
+class QAPReductionEnv:
     assignment: List[Union[int, None]]
     qap: QAP
     remaining_qap: QAP
@@ -54,5 +55,51 @@ class QAPEnv:
             assert not self.unassigned_a
             assert not self.unassigned_b
             assert np.isclose(self.qap.compute_value(self.assignment).item(), self.reward_sum)
+
+        return reward
+
+
+class QAPPairLinkEnv(QAPReductionEnv):
+    """
+    Modification of the QAPEnv that only adds a new edge between two assigned nodes
+    """
+
+    def get_state(self):
+        """
+        Tuple of A matrix, B matrix and L matrix.
+        """
+        assert torch.all(self.qap.linear_costs == 0)
+        n = self.qap.size
+        assigned_a = [a for a in range(n) if self.assignment[a]]
+        assigned_b = [self.assignment[a] for a in assigned_a]
+        links = torch.zeros((n, n))
+        links[assigned_a, assigned_b] = 1
+        return self.qap, links, list(self.unassigned_a), list(self.unassigned_b)
+
+
+class QAPOneStepEnv:
+    """
+    Solve the entire QAP in one step.
+    """
+    assignment: List[Union[int, None]]
+    qap: QAP
+
+    def __init__(self, qap: QAP):
+        self.assignment = [None] * qap.size
+        self.qap = qap
+        self.done = False
+
+        self.reward_sum = 0
+
+    def get_state(self) -> QAP:
+        return self.qap
+
+    def step(self, assignment):
+        self.done = True
+        reward = self.qap.compute_value(assignment).item()
+
+        # Used by the agents to get the final reward and assignment
+        self.reward_sum = reward
+        self.assignment = assignment
 
         return reward

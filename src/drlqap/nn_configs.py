@@ -75,3 +75,24 @@ def mpgnn_global(channels, encoder_depth, conv_depth=2, conv_norm='mean_separati
 
     return nn.QAPNet(encoder, global_head)
 
+# Same as mpgnn_pairs, but for QAPPairLinkEnv representation
+def mpgnn_pairs_linkedqap(channels, encoder_depth, conv_depth=2, conv_norm='mean_separation', q_aggr='sum', l_aggr='sum', combined_transform=False, random_start=False, use_edge_encoder=False, bidirectional=False):
+    encoder = nn.DenseQAPEncoder(
+        embedding_width=channels, 
+        encoder_depth=encoder_depth,
+        conv_depth = conv_depth,
+        conv_norm = conv_norm,
+        q_aggr = q_aggr,
+        l_aggr = l_aggr,
+        combined_transform = combined_transform,
+        random_start = random_start,
+        use_edge_encoder = use_edge_encoder,
+        bidirectional = bidirectional
+    )
+
+    pair_head = nn.PairValueHead(
+        embedding_width=channels,
+        depth=3
+    )
+
+    return nn.QAPPairLinkNet(encoder, pair_head)

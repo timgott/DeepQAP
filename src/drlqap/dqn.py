@@ -1,4 +1,4 @@
-from drlqap.qapenv import QAPEnv
+from drlqap.qapenv import QAPReductionEnv
 from drlqap.qap import QAP
 from drlqap import utils
 import random
@@ -28,6 +28,7 @@ class ReplayMemory(object):
 
 class DQNAgent:
     def __init__(self,
+            env_class,
             policy_net,
             batch_size = 16,
             gamma = 0.999,
@@ -38,6 +39,7 @@ class DQNAgent:
             target_update_every = 100,
             learning_rate = 1e-3
         ) -> None:
+        self.env_class = env_class
         self.policy_net = policy_net
         self.target_net = copy.deepcopy(policy_net)
         self.optimizer = torch.optim.Adam(
@@ -91,7 +93,7 @@ class DQNAgent:
         return loss.item()
 
 
-    def step(self, env: QAPEnv, epsilon):
+    def step(self, env: QAPReductionEnv, epsilon):
         state = env.get_state()
 
         if random.random() < epsilon:
@@ -108,7 +110,7 @@ class DQNAgent:
         self.memory.push(state, action, next_state, reward)
 
 
-    def run_episode(self, env: QAPEnv, learn=True):
+    def run_episode(self, env: QAPReductionEnv, learn=True):
         # epsilon-greedy when learning, greedy otherwise
         epsilon = self.compute_epsilon(self.episode_count) if learn else 0
 
@@ -138,13 +140,13 @@ class DQNAgent:
 
 
     def solve_and_learn(self, qap: QAP):
-        env = QAPEnv(qap)
+        env = self.env_class(qap)
         self.run_episode(env, learn=True)
         assert env.done
         return env.reward_sum, env.assignment
 
     def solve(self, qap: QAP):
-        env = QAPEnv(qap)
+        env = self.env_class(qap)
         self.run_episode(env, learn=False)
         assert env.done
         return env.reward_sum, env.assignment

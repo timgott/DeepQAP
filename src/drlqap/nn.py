@@ -369,6 +369,9 @@ class GlobalValueHead(torch.nn.Module):
 
 
 class QAPNet(torch.nn.Module):
+    """
+    Runs encoder on the QAP (including linear costs) to get embeddings for all nodes, then runs head on the embeddings.
+    """
     def __init__(self, encoder, head):
         super().__init__()
         self.encoder = encoder
@@ -383,3 +386,26 @@ class QAPNet(torch.nn.Module):
 
         return self.head(a, b)
 
+class QAPPairLinkNet(torch.nn.Module):
+    """
+    Network for QAPPairLinkEnv, i.e. edges between graphs encode whether there is a link
+
+    Technically it does exactly the same as QAPNet just with switched matrices
+    """
+    def __init__(self, encoder, head):
+        super().__init__()
+        self.encoder = encoder
+        self.head = head
+
+    def forward(self, state):
+        qap, links, unassigned_a, unassigned_b = state
+        a, b = self.encoder(qap.A, qap.B, links)
+
+        a = a[unassigned_a]
+        b = b[unassigned_b]
+
+        # Store embeddings for debugging
+        self.embeddings_a = a
+        self.embeddings_b = b
+
+        return self.head(a, b)

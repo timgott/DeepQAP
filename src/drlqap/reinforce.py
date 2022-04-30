@@ -2,12 +2,14 @@ import numpy as np
 import torch
 from drlqap import utils
 from drlqap.qap import QAP
-from drlqap.qapenv import QAPEnv
-from drlqap.utils import IncrementalStats, Categorical2D
+from drlqap.qapenv import QAPReductionEnv
+from drlqap.utils import IncrementalStats
 
 class ReinforceAgent:
-    def __init__(self, policy_net, learning_rate=1e-3, use_baseline=True, weight_decay=0):
+    def __init__(self, env_class, policy_net, policy_sampler, learning_rate=1e-3, use_baseline=True, weight_decay=0):
+        self.env_class = env_class
         self.policy_net = policy_net
+        self.policy_sampler = policy_sampler
         self.baseline = IncrementalStats()
         self.use_baseline = use_baseline
 
@@ -20,20 +22,12 @@ class ReinforceAgent:
 
     def get_policy(self, qap: QAP):
         # Compute probabilities for every pair p_ij = P(a_i -> b_j)
-        probabilities = self.policy_net(qap)
-
-        # Assert shape
-        n = qap.size
-        assert probabilities.shape == (n, n), \
-                f"{probabilities.shape} != {n},{n}"
-
-        # Create distribution over pairs
-        policy = Categorical2D(logits=probabilities, shape=(n,n))
-
-        return policy
+        logits = self.policy_net(qap)
+        # Create policy to sample action from
+        return self.policy_sampler(logits=logits, qap=qap)
 
 
-    def run_episode(self, env: QAPEnv, learn=True):
+    def run_episode(self, env: QAPReductionEnv, learn=True):
         # Statistics
         entropies = []
 
@@ -95,13 +89,13 @@ class ReinforceAgent:
             self.episode_stats["gradient_" + name] = gradient_magnitude
 
     def solve_and_learn(self, qap: QAP):
-        env = QAPEnv(qap)
+        env = self.env_class(qap)
         self.run_episode(env, learn=True)
         assert env.done
         return env.reward_sum, env.assignment
 
     def solve(self, qap: QAP):
-        env = QAPEnv(qap)
+        env = self.env_class(qap)
         self.run_episode(env, learn=False)
         assert env.done
         return env.reward_sum, env.assignment

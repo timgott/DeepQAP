@@ -39,31 +39,6 @@ class IncrementalStats():
         self.count = state["count"]
 
 
-class Categorical2D:
-    def __init__(self, logits, shape) -> None:
-        assert(logits.shape == shape or logits.shape == shape + (1,))
-        assert(len(shape) == 2)
-        flat_logits = logits.reshape((-1,))
-        self.shape = shape
-        self.distribution = torch.distributions.Categorical(logits=flat_logits)
-
-    def unravel(self, vector):
-        return np.unravel_index(vector, self.shape)
-
-    def ravel(self, pair):
-        return torch.tensor(np.ravel_multi_index(pair, dims=self.shape))
-
-    def sample(self):
-        flat_result = self.distribution.sample()
-        return self.unravel(flat_result)
-
-    def log_prob(self, pair):
-        return self.distribution.log_prob(self.ravel(pair))
-
-    def entropy(self):
-        return self.distribution.entropy()
-
-
 def reverse_cumsum(data):
     cumulative = np.array(data)
     flipped = np.flip(cumulative)

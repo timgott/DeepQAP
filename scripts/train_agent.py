@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from drlqap.taskgenerators import generators as tasks
 from drlqap.experiment import run_experiment_from_config
 import logging

@@ -1,6 +1,6 @@
 import math
 from drlqap.qap import QAP
-from drlqap.qapenv import QAPEnv
+from drlqap.qapenv import QAPReductionEnv
 
 def solve_qap_backtracking(qap: QAP):
     variables = list(range(qap.size))
@@ -53,7 +53,7 @@ def find_max_pair(matrix):
 
 
 def solve_qap_maxgreedy(qap: QAP):
-    env = QAPEnv(qap)
+    env = QAPReductionEnv(qap)
 
     while not env.done:
         qap = env.remaining_qap
@@ -63,7 +63,7 @@ def solve_qap_maxgreedy(qap: QAP):
 
 
 def solve_qap_lingreedy(qap: QAP):
-    env = QAPEnv(qap)
+    env = QAPReductionEnv(qap)
 
     # Choose first pair based on max difference
     env.step(find_max_difference_pair(qap.A, qap.B))

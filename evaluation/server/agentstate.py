@@ -1,8 +1,9 @@
 from typing import Optional
 import torch
 from torch._C import Graph
+from drlqap.policies import Categorical2D
 from drlqap.qap import GraphAssignmentProblem, QAP
-from drlqap.qapenv import QAPEnv
+from drlqap.qapenv import QAPReductionEnv
 from drlqap.reinforce import ReinforceAgent
 from matrix import MatrixDataSource
 import numpy as np
@@ -12,7 +13,7 @@ import concurrent.futures
 from functools import partial
 
 class AgentState:
-    def __init__(self, env: QAPEnv, agent: ReinforceAgent) -> None:
+    def __init__(self, env: QAPReductionEnv, agent: ReinforceAgent) -> None:
         self.agent = agent
         self.env = env
         self.compute_net_state()
@@ -51,7 +52,7 @@ class AgentStateViewModel:
         self.state: Optional[AgentState] = None
         self.agent = None
         self.qap: Optional[GraphAssignmentProblem] = None
-        self.env: Optional[QAPEnv] = None
+        self.env: Optional[QAPReductionEnv] = None
 
         self.probability_matrix_source = MatrixDataSource('a', 'b', ['p', 'l'])
         self.node_embedding_sources = (
@@ -76,7 +77,10 @@ class AgentStateViewModel:
                 policy = state.get_policy()
                 n = len(nodes_a)
                 m = len(nodes_b)
-                probs = policy.distribution.probs.reshape(n, m)
+                if policy is Categorical2D:
+                    probs = policy.distribution.probs.reshape(n, m)
+                else:
+                    probs = state.probs
                 log_probs = state.probs
             else:
                 probs = state.probs
@@ -110,7 +114,7 @@ class AgentStateViewModel:
 
     def reset_env(self):
         if self.qap is not None:
-            self.env = QAPEnv(self.qap)
+            self.env = QAPReductionEnv(self.qap)
             self.update_qap_state()
             self.reset_state()
 
