@@ -1,6 +1,7 @@
 import math
 from drlqap.qap import QAP
 from drlqap.qapenv import QAPReductionEnv
+import scipy.optimize
 
 def solve_qap_backtracking(qap: QAP):
     variables = list(range(qap.size))
@@ -73,3 +74,7 @@ def solve_qap_lingreedy(qap: QAP):
 
     return env.reward_sum, env.assignment
 
+
+def solve_qap_faq(qap: QAP):
+    result = scipy.optimize.quadratic_assignment(qap.A, qap.B)
+    return result.fun, result.col_ind

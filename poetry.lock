@@ -270,6 +270,17 @@ optional = false
 python-versions = "*"
 
 [[package]]
+name = "gurobipy"
+version = "9.5.1"
+description = "Python interface to Gurobi"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.extras]
+matrixapi = ["numpy", "scipy"]
+
+[[package]]
 name = "idna"
 version = "3.3"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -1348,7 +1359,7 @@ PyYAML = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "~3.9.0"
-content-hash = "bb5571d711a92be6fcaf3ec7e98047511064f9314978c05aead8d2c0a1a628ba"
+content-hash = "21061998d469ca9d3cd090fbdc0cebc17d15092d53783f86a431ce46f212c8e3"
 
 [metadata.files]
 appnope = [
@@ -1543,6 +1554,28 @@ fonttools = [
 googledrivedownloader = [
     {file = "googledrivedownloader-0.4-py2.py3-none-any.whl", hash = "sha256:26ef906c4a038de6fb36f375b0cb0af6f0b6d7ea9ce019a3a08abc50fd6a3b73"},
     {file = "googledrivedownloader-0.4.tar.gz", hash = "sha256:4b34c1337b2ff3bf2bd7581818efbdcaea7d50ffd484ccf80809688f5ca0e204"},
+]
+gurobipy = [
+    {file = "gurobipy-9.5.1-cp27-cp27m-macosx_10_9_x86_64.whl", hash = "sha256:b219df0b8a07ad81560a69bd4af1ee1632dd63a3225fc182200ca10cc80d5b93"},
+    {file = "gurobipy-9.5.1-cp27-cp27m-manylinux2014_x86_64.whl", hash = "sha256:a571382408ec528fdafc3990a0a1eeff93f6658f612510cae9557b0ec23d38ff"},
+    {file = "gurobipy-9.5.1-cp27-cp27m-win_amd64.whl", hash = "sha256:951281849464fae74b56de3133ea2445d47711cd3ea8daf76275fb19b1d09f6d"},
+    {file = "gurobipy-9.5.1-cp27-cp27mu-manylinux2014_x86_64.whl", hash = "sha256:f5c86c994f987f4121a04ec6fa1f5d1428c16b5998b30d41df99357a789451b4"},
+    {file = "gurobipy-9.5.1-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:2cc458e597979b4764ce8d14d27465bdcba00d6dbfbda7e4a7b506b014753c97"},
+    {file = "gurobipy-9.5.1-cp310-cp310-manylinux2014_aarch64.whl", hash = "sha256:43fb747e678007dd276025453e959b631c5f460f94d8117fccdad1036e0c4d6e"},
+    {file = "gurobipy-9.5.1-cp310-cp310-manylinux2014_x86_64.whl", hash = "sha256:704651be57af74e296df74cbb634f626a5212445779ee249a7114f8cf759bbc2"},
+    {file = "gurobipy-9.5.1-cp310-cp310-win_amd64.whl", hash = "sha256:393dfe0e266c48d9de6405cca64863787a648e9f4672f161d31ceac4cd24f675"},
+    {file = "gurobipy-9.5.1-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:1ec9d5a557773878dea83a8dd0e19a1e29e2cf7a053b5171b1ab24525de87445"},
+    {file = "gurobipy-9.5.1-cp37-cp37m-manylinux2014_aarch64.whl", hash = "sha256:09ae662cd8894f42ca3daf70717104a35986d9c402d339222872d925534fcd69"},
+    {file = "gurobipy-9.5.1-cp37-cp37m-manylinux2014_x86_64.whl", hash = "sha256:d9bb6d9842bdb123c55813b4eaa4f299cfef8dde1b160bf5d15ade58a07af6be"},
+    {file = "gurobipy-9.5.1-cp37-cp37m-win_amd64.whl", hash = "sha256:e632813215faf1154a5ca5835b75083fc6841de8af43d7a8378e4f3f7d41b6f9"},
+    {file = "gurobipy-9.5.1-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:0c7c2baa633296b7f4e95b01630f2b6e2efb8ac0d2fc10f19c041159a9bd45d3"},
+    {file = "gurobipy-9.5.1-cp38-cp38-manylinux2014_aarch64.whl", hash = "sha256:3a7aee181ae360a41e78bac416cfa9f9d502f7b16a2d5324432a1b5889607781"},
+    {file = "gurobipy-9.5.1-cp38-cp38-manylinux2014_x86_64.whl", hash = "sha256:547356cd52a01a824fe9ca7a89f8be153c6c0470f870cd02105601ba809ea7f1"},
+    {file = "gurobipy-9.5.1-cp38-cp38-win_amd64.whl", hash = "sha256:5864cc21fd85a9aa01a8fb9ed4b74c2ac386ee36f896c0eb209c7c61426be8fd"},
+    {file = "gurobipy-9.5.1-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:0f5310452b8e7c0bef27031bdf3ac9938b5edd4a8a9e99ef72bc648956a3fbfa"},
+    {file = "gurobipy-9.5.1-cp39-cp39-manylinux2014_aarch64.whl", hash = "sha256:eeb4d93077f49044be61e0972a4326126823111ab848744cb91ea9fc1aea5663"},
+    {file = "gurobipy-9.5.1-cp39-cp39-manylinux2014_x86_64.whl", hash = "sha256:88d664929e441caa19df64aea19be1e935ee2379570633ee254fd182b9393526"},
+    {file = "gurobipy-9.5.1-cp39-cp39-win_amd64.whl", hash = "sha256:61140dab7f85dc22e9523fcd9264f64b291df27175ee0c190cfd23ca3460f0db"},
 ]
 idna = [
     {file = "idna-3.3-py3-none-any.whl", hash = "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff"},

@@ -55,7 +55,7 @@ class LazyGlobTaskGenerator():
 
     def get_tasks(self):
         if self.tasks is None:
-            self.tasks = load_qaplib_set(self.glob, normalize=True)
+            self.tasks = load_qaplib_set(self.glob, normalize=self.normalize)
             if self.filter:
                 self.tasks = [qap for qap in self.tasks if self.filter(qap)]
             assert self.tasks, f"No qap file matching {self.glob}"

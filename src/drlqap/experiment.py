@@ -95,6 +95,7 @@ def load_metadata(experiment_path):
                 metadata["seed"] = int(f.read())
         except FileNotFoundError:
             metadata["seed"] = 0
+        metadata["agent_arguments"] = {}
         return metadata
 
 

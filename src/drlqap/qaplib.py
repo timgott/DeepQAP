@@ -46,5 +46,5 @@ def load_qap_set(file_names, normalize=False):
 
 def load_qaplib_set(glob, normalize=False):
     paths = sorted(qapdata_path.glob(glob))
-    return load_qap_set(paths, normalize=True)
+    return load_qap_set(paths, normalize=normalize)
 
