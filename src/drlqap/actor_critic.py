@@ -4,7 +4,12 @@ from drlqap.qap import QAP
 from drlqap.qapenv import QAPReductionEnv
 
 class A2CAgent:
-    def __init__(self, env_class, policy_net, critic_net, policy_sampler, p_learning_rate, c_learning_rate, p_weight_decay=0, c_weight_decay=0):
+    def __init__(self, env_class,
+            policy_net, critic_net,
+            policy_sampler,
+            p_learning_rate, c_learning_rate,
+            p_weight_decay=0, c_weight_decay=0,
+        ):
         self.env_class = env_class
         self.policy_net = policy_net
         self.critic_net = critic_net
@@ -20,6 +25,8 @@ class A2CAgent:
             lr=c_learning_rate,
             weight_decay=c_weight_decay,
         )
+
+        self.schedulers = []
 
 
     def get_policy(self, qap: QAP):
@@ -74,6 +81,10 @@ class A2CAgent:
                 policy_loss.backward()
                 self.p_optimizer.step()
 
+        if learn:
+            for scheduler in self.schedulers:
+                scheduler.step()
+
         self.episode_stats = {
             "value": env.reward_sum,
             "entropy_average": np.mean(entropies),
@@ -83,6 +94,8 @@ class A2CAgent:
         if learn:
             self.episode_stats["advantage_average"] = np.mean(advantages)
             self.episode_stats["advantage_steps"] = np.array(advantages)
+            for i, scheduler in enumerate(self.schedulers):
+                self.episode_stats["learning_rate" + (f"_{i}" if i > 0 else "")] = scheduler.get_last_lr()
 
 
     def solve_and_learn(self, qap: QAP):
@@ -106,7 +119,8 @@ class A2CAgent:
             'policy_optimizer_state_dict': self.p_optimizer.state_dict(),
             'critic_state_dict': self.critic_net.state_dict(),
             'critic_optimizer_state_dict': self.c_optimizer.state_dict(),
-            }, path)
+            'scheduler_state_dicts': [s.state_dict() for s in self.schedulers],
+        }, path)
 
     def load_checkpoint(self, path):
         checkpoint = torch.load(path)
@@ -114,3 +128,5 @@ class A2CAgent:
         self.p_optimizer.load_state_dict(checkpoint['policy_optimizer_state_dict'])
         self.critic_net.load_state_dict(checkpoint['critic_state_dict'])
         self.c_optimizer.load_state_dict(checkpoint['critic_optimizer_state_dict'])
+        for i, s in enumerate(self.schedulers):
+            s.load_state_dict(checkpoint['scheduler_state_dicts'][i])

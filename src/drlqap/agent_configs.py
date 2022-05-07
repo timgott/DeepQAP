@@ -5,6 +5,7 @@ from drlqap import nn_configs
 from drlqap import utils
 from drlqap import policies
 from drlqap.qapenv import QAPReductionEnv, QAPPairLinkEnv, QAPOneStepEnv
+import torch
 
 agents = dict()
 agent_training_steps = dict()
@@ -333,3 +334,20 @@ def a2c_ms100x(learning_rate=5e-4, gnn_depth=2, mlp_depth=1, hidden_size=32, wei
         p_weight_decay=weight_decay,
         c_weight_decay=weight_decay
     )
+
+@define_agent_config()
+def a2c_ms100x_cyclelr(gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0):
+    agent = A2CAgent(
+        QAPReductionEnv,
+        nn_configs.mpgnn_pairs(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True, conv_norm='mean_separation_100x'),
+        nn_configs.mpgnn_global(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True),
+        policies.sample_pair,
+        p_learning_rate=5e-4,
+        c_learning_rate=5e-4,
+        p_weight_decay=weight_decay,
+        c_weight_decay=weight_decay
+    )
+    p_scheduler = torch.optim.lr_scheduler.CyclicLR(agent.p_optimizer, base_lr=2e-4, max_lr=8e-4, mode='triangular2', cycle_momentum=False, step_size_up=2500)
+    c_scheduler = torch.optim.lr_scheduler.CyclicLR(agent.c_optimizer, base_lr=2e-4, max_lr=8e-4, mode='triangular2', cycle_momentum=False, step_size_up=2500)
+    agent.schedulers.extend([p_scheduler, c_scheduler])
+    return agent
