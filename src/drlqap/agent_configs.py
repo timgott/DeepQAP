@@ -351,3 +351,20 @@ def a2c_ms100x_cyclelr(gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0)
     c_scheduler = torch.optim.lr_scheduler.CyclicLR(agent.c_optimizer, base_lr=5e-6, max_lr=4e-4, mode='triangular2', cycle_momentum=False, step_size_up=2500)
     agent.schedulers.extend([p_scheduler, c_scheduler])
     return agent
+
+@define_agent_config()
+def a2c_ms100x_steplr(learning_rate=5e-4, gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0):
+    agent = A2CAgent(
+        QAPReductionEnv,
+        nn_configs.mpgnn_pairs(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True, conv_norm='mean_separation_100x'),
+        nn_configs.mpgnn_global(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True),
+        policies.sample_pair,
+        p_learning_rate=learning_rate,
+        c_learning_rate=learning_rate,
+        p_weight_decay=weight_decay,
+        c_weight_decay=weight_decay
+    )
+    p_scheduler = torch.optim.lr_scheduler.StepLR(agent.p_optimizer, step_size=10000, gamma=0.5)
+    c_scheduler = torch.optim.lr_scheduler.StepLR(agent.c_optimizer, step_size=10000, gamma=0.5)
+    agent.schedulers.extend([p_scheduler, c_scheduler])
+    return agent
