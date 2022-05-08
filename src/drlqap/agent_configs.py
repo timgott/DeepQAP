@@ -347,7 +347,7 @@ def a2c_ms100x_cyclelr(gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0)
         p_weight_decay=weight_decay,
         c_weight_decay=weight_decay
     )
-    p_scheduler = torch.optim.lr_scheduler.CyclicLR(agent.p_optimizer, base_lr=2e-4, max_lr=8e-4, mode='triangular2', cycle_momentum=False, step_size_up=2500)
-    c_scheduler = torch.optim.lr_scheduler.CyclicLR(agent.c_optimizer, base_lr=2e-4, max_lr=8e-4, mode='triangular2', cycle_momentum=False, step_size_up=2500)
+    p_scheduler = torch.optim.lr_scheduler.CyclicLR(agent.p_optimizer, base_lr=5e-6, max_lr=4e-4, mode='triangular2', cycle_momentum=False, step_size_up=2500)
+    c_scheduler = torch.optim.lr_scheduler.CyclicLR(agent.c_optimizer, base_lr=5e-6, max_lr=4e-4, mode='triangular2', cycle_momentum=False, step_size_up=2500)
     agent.schedulers.extend([p_scheduler, c_scheduler])
     return agent
