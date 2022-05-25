@@ -36,6 +36,7 @@ def main():
     parser.add_argument('-md', '--mlp_depth', type=int, action=AgentArgAction, help='Override depth of MLP encoders')
     parser.add_argument('-hs', '--hidden_size', type=int, action=AgentArgAction, help='Override hidden size')
     parser.add_argument('-wd', '--weight_decay', type=float, action=AgentArgAction, help='Override weight decay')
+    parser.add_argument('--gnn_norm', type=str, action=AgentArgAction, help='Override GNN norm')
 
     args = parser.parse_intermixed_args()
 

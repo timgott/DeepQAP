@@ -253,12 +253,26 @@ def dqn_dense_tmn_ec_eps0():
 
 @define_agent_config()
 def dqn_dense_ms_ec_eps0(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, random_start=False):
+    return dqn_dense_ec_eps0(learning_rate, hidden_size, mlp_depth, gnn_depth, random_start, gnn_norm='mean_separation')
+
+@define_agent_config()
+def dqn_dense_ec_eps0(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, random_start=False, gnn_norm=None):
+    return DQNAgent(
+        QAPReductionEnv,
+        nn_configs.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm=gnn_norm, use_edge_encoder=True, combined_transform=False, random_start=random_start),
+        learning_rate=learning_rate,
+        eps_start=0,
+        eps_end=0,
+    )
+
+@define_agent_config()
+def dqn_dense_ms_ec(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, random_start=False):
     return DQNAgent(
         QAPReductionEnv,
         nn_configs.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False, random_start=random_start),
         learning_rate=learning_rate,
-        eps_start=0,
-        eps_end=0,
+        eps_start=0.5,
+        eps_end=0.005,
     )
 
 @define_agent_config()
