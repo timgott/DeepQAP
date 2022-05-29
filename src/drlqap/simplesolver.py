@@ -2,6 +2,7 @@ import math
 from drlqap.qap import QAP
 from drlqap.qapenv import QAPReductionEnv
 import scipy.optimize
+import random
 
 def solve_qap_backtracking(qap: QAP):
     variables = list(range(qap.size))
@@ -78,3 +79,10 @@ def solve_qap_lingreedy(qap: QAP):
 def solve_qap_faq(qap: QAP):
     result = scipy.optimize.quadratic_assignment(qap.A, qap.B)
     return result.fun, result.col_ind
+
+
+def solve_random(qap: QAP):
+    assignment = list(range(qap.size))
+    random.shuffle(assignment)
+    return qap.compute_value(assignment), assignment
+

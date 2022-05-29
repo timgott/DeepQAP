@@ -1,8 +1,8 @@
 import random
 
-from torch.nn.functional import normalize
+import torch
 from drlqap import testgraphs
-from drlqap.qap import GraphAssignmentProblem
+from drlqap.qap import GraphAssignmentProblem, QAP
 from drlqap.qaplib import load_qaplib_set, load_qap
 
 generators = dict()
@@ -45,6 +45,15 @@ class RandomWeightsTaskGenerator(RandomTaskGenerator):
             b = testgraphs.create_random_graph(size, 1.0)
             return GraphAssignmentProblem(a, b)
         super().__init__(random_qap)
+        
+class LinearTaskGenerator(RandomTaskGenerator):
+    def __init__(self, size):
+        def random_qap():
+            a = torch.zeros((size, size))
+            b = torch.zeros((size, size))
+            l = torch.rand((size, size))
+            return QAP(a, b, l, 0)
+        super().__init__(random_qap)
 
 class LazyGlobTaskGenerator():
     def __init__(self, glob, normalize=False, filter=None):
@@ -74,6 +83,7 @@ def triangle_generator():
 
 qaplib_categories = ['bur', 'chr', 'esc', 'had', 'kra', 'lipa', 'nug', 'rou', 'scr', 'sko', 'ste', 'tai', 'tho', 'wil']
 generators = {
+    'minilinear': LinearTaskGenerator(2),
     'small_random_graphs': RandomWeightsTaskGenerator(8),
     'medium_random_graphs': RandomWeightsTaskGenerator(16),
     'qaplib_bur26a': LazyGlobTaskGenerator("bur26a.dat"),
