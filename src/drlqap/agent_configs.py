@@ -276,6 +276,16 @@ def dqn_dense_ms_ec(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2
     )
 
 @define_agent_config()
+def dqn_bi(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, random_start=False, gnn_norm='mean_separation'):
+    return DQNAgent(
+        QAPReductionEnv,
+        nn_configs.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm=gnn_norm, use_edge_encoder=True, combined_transform=False, random_start=random_start, bidirectional=True),
+        learning_rate=learning_rate,
+        eps_start=0,
+        eps_end=0,
+    )
+
+@define_agent_config()
 def dqn_linkedqap(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, random_start=False):
     return DQNAgent(
         QAPPairLinkEnv,
