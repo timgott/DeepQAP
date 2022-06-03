@@ -133,6 +133,9 @@ generators = {
     'increasing_1000': SteppedTaskGenerator(
         RandomMatricesTaskGenerator, initial_n=2, step_length=1000
     ),
+    'increasing_simple_1000': SteppedTaskGenerator(
+        RandomWeightsTaskGenerator, initial_n=2, step_length=1000
+    ),
     'qaplib_all_bur': LazyGlobTaskGenerator("bur*.dat", normalize=False),
     'qaplib_sko_42_64_normalized': LazyGlobTaskGenerator("sko[456]?.dat", normalize=True),
     **{
@@ -141,4 +144,5 @@ generators = {
     },
     'qaplib_tai35a_normalized': LazyGlobTaskGenerator("tai35a.dat", normalize=False),
     'qaplib_all_64_normalized': LazyGlobTaskGenerator("*.dat", normalize=False, filter=lambda qap: qap.size <= 64),
+    'qaplib_all_100_normalized': LazyGlobTaskGenerator("*.dat", normalize=False, filter=lambda qap: qap.size <= 100),
 }

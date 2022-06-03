@@ -1,8 +1,9 @@
 import math
-from drlqap.qap import QAP
+from drlqap.qap import QAP, GraphAssignmentProblem
 from drlqap.qapenv import QAPReductionEnv
 import scipy.optimize
 import random
+import networkx
 
 def solve_qap_backtracking(qap: QAP):
     variables = list(range(qap.size))
@@ -76,8 +77,10 @@ def solve_qap_lingreedy(qap: QAP):
     return env.reward_sum, env.assignment
 
 
-def solve_qap_faq(qap: QAP):
-    result = scipy.optimize.quadratic_assignment(qap.A, qap.B)
+def solve_qap_faq(qap: GraphAssignmentProblem):
+    a = networkx.to_numpy_array(qap.graph_source)
+    b = networkx.to_numpy_array(qap.graph_target)
+    result = scipy.optimize.quadratic_assignment(a, b)
     return result.fun, result.col_ind
 
 
