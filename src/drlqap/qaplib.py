@@ -16,7 +16,10 @@ class QaplibSolution:
         size = int(data[0])
         assert (len(data) == size + 2)
         value = int(data[1])
-        assignment = [int(x)-1 for x in data[2:]]
+
+        raw_assignment=[int(x) for x in data[2:]]
+        offset = min(raw_assignment)
+        assignment = [x-offset for x in raw_assignment]
         return QaplibSolution(size, value, assignment)
 
 
