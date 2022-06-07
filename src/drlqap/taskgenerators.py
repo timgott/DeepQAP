@@ -145,4 +145,5 @@ generators = {
     'qaplib_tai35a_normalized': LazyGlobTaskGenerator("tai35a.dat", normalize=False),
     'qaplib_all_64_normalized': LazyGlobTaskGenerator("*.dat", normalize=False, filter=lambda qap: qap.size <= 64),
     'qaplib_all_100_normalized': LazyGlobTaskGenerator("*.dat", normalize=False, filter=lambda qap: qap.size <= 100),
+    'qaplib_all_150_normalized': LazyGlobTaskGenerator("*.dat", normalize=False, filter=lambda qap: qap.size <= 150),
 }

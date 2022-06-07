@@ -89,3 +89,22 @@ def solve_random(qap: QAP):
     random.shuffle(assignment)
     return qap.compute_value(assignment), assignment
 
+
+def solve_partial(qap: QAP, main_step, last_n):
+    env = QAPReductionEnv(qap)
+    while env.remaining_qap.size > last_n:
+        env.step(main_step(env.remaining_qap))
+    
+    _, remaining_assignment = solve_qap_backtracking(env.remaining_qap)
+    
+    for a, b in enumerate(remaining_assignment):
+        assert(env.assignment[env.unassigned_a[a]] == None)
+        env.assignment[env.unassigned_a[a]] = env.unassigned_b[b]
+    
+    return qap.compute_value(env.assignment), env.assignment
+
+def solve_partial_random(qap: QAP, last_n):
+    return solve_partial(qap, lambda q: (random.randrange(q.size), random.randrange(q.size)), last_n)
+
+def solve_best_of_k(qap: QAP, k):
+    return min([solve_random(qap) for i in range(k)], key=lambda p: p[0])
