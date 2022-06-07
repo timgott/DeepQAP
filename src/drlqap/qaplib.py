@@ -12,7 +12,7 @@ class QaplibSolution:
 
     @staticmethod
     def from_string(string):
-        data = string.split()
+        data = string.replace(',', ' ').split()
         size = int(data[0])
         assert (len(data) == size + 2)
         value = int(data[1])
