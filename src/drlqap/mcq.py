@@ -74,7 +74,7 @@ class MonteCarloQAgent:
 
             # Optimize
             criterion = torch.nn.MSELoss()
-            loss = criterion(torch.tensor(returns), torch.stack(predicted_returns))
+            loss = criterion(torch.tensor(returns, dtype=torch.float32), torch.stack(predicted_returns))
             self.optimizer.zero_grad(set_to_none=True)
             loss.backward()
             self.optimizer.step()
