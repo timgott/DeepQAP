@@ -128,7 +128,7 @@ generators = {
     'medium_random_graphs': RandomWeightsTaskGenerator(16),
     'qaplib_bur26a': LazyGlobTaskGenerator("bur26a.dat"),
     'qaplib_bur26a_normalized': LazyGlobTaskGenerator("bur26a.dat", normalize=True),
-    'small_fixed': LazyGlobTaskGenerator("testgraph.dat"),
+    'small_fixed': LazyGlobTaskGenerator("testgraph.dat.test"),
     'triangle': SingleTask(triangle_generator()),
     'increasing_1000': SteppedTaskGenerator(
         RandomMatricesTaskGenerator, initial_n=2, step_length=1000
