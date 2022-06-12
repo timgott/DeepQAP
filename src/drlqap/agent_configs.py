@@ -1,6 +1,7 @@
 from drlqap.dqn import DQNAgent
 from drlqap.reinforce import ReinforceAgent
 from drlqap.actor_critic import A2CAgent
+from drlqap.mcq import MonteCarloQAgent
 from drlqap import nn_configs
 from drlqap import utils
 from drlqap import policies
@@ -392,3 +393,14 @@ def a2c_ms100x_steplr(learning_rate=5e-4, gnn_depth=2, mlp_depth=1, hidden_size=
     c_scheduler = torch.optim.lr_scheduler.StepLR(agent.c_optimizer, step_size=10000, gamma=0.5)
     agent.schedulers.extend([p_scheduler, c_scheduler])
     return agent
+
+@define_agent_config()
+def mcq_eps0(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, gnn_norm='mean_separation'):
+    return MonteCarloQAgent(
+        QAPReductionEnv,
+        nn_configs.mpgnn_pairs(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True, conv_norm=gnn_norm),
+        learning_rate=learning_rate,
+        eps_start=0,
+        eps_end=0,
+    )
+
