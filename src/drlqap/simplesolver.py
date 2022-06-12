@@ -108,3 +108,21 @@ def solve_partial_random(qap: QAP, last_n):
 
 def solve_best_of_k(qap: QAP, k):
     return min([solve_random(qap) for i in range(k)], key=lambda p: p[0])
+
+
+def mirror(qap):
+    a = qap.A
+    b = qap.B
+    return QAP(b, a, qap.linear_costs.transpose(0,1), 0)
+    
+def mirror_assignment(assignment):
+    out = [None] * len(assignment)
+    for i, j in enumerate(assignment):
+        out[j] = i
+    return out
+
+def mirror_solver(solver):
+    def solve_mirrored(qap):
+        v, assignment = solver(mirror(qap))
+        return v, mirror_assignment(assignment)
+    return solve_mirrored
