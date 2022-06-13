@@ -21,9 +21,15 @@ def load_checkpoints(path_prefix: Path):
     return agents
 
 def load_float_txt(path: Path):
+    def parse_float(s):
+        try:
+            return float(s)
+        except ValueError:
+            return None
+    
     try:
         with open(path) as f:
-            return [float(line) for line in f.readlines()]
+            return [parse_float(line) for line in f.readlines()]
     except FileNotFoundError:
         return []
 

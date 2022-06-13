@@ -80,7 +80,7 @@ def solve_qap_lingreedy(qap: QAP):
 def solve_qap_faq(qap: GraphAssignmentProblem):
     a = networkx.to_numpy_array(qap.graph_source)
     b = networkx.to_numpy_array(qap.graph_target)
-    result = scipy.optimize.quadratic_assignment(a, b)
+    result = scipy.optimize.quadratic_assignment(a, b, method='faq')
     return result.fun, result.col_ind
 
 
@@ -106,8 +106,8 @@ def solve_partial(qap: QAP, main_step, last_n):
 def solve_partial_random(qap: QAP, last_n):
     return solve_partial(qap, lambda q: (random.randrange(q.size), random.randrange(q.size)), last_n)
 
-def solve_best_of_k(qap: QAP, k):
-    return min([solve_random(qap) for i in range(k)], key=lambda p: p[0])
+def solve_best_of_k(qap: QAP, k, solver=solve_random):
+    return min([solver(qap) for i in range(k)], key=lambda p: p[0])
 
 
 def mirror(qap):
