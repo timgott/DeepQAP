@@ -395,7 +395,7 @@ def a2c_ms100x_steplr(learning_rate=5e-4, gnn_depth=2, mlp_depth=1, hidden_size=
     return agent
 
 @define_agent_config()
-def mcq_eps0(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, gnn_norm='mean_separation'):
+def mcq_eps0(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, gnn_norm='mean_separation_100x'):
     return MonteCarloQAgent(
         QAPReductionEnv,
         nn_configs.mpgnn_pairs(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True, conv_norm=gnn_norm),

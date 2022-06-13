@@ -61,7 +61,6 @@ class MonteCarloQAgent:
                 predicted_returns.append(q_values[action])
 
         self.episode_stats = {
-            "qvalue": predicted_returns[0].item(),
             "value": env.reward_sum,
             "epsilon": epsilon,
         }
@@ -86,6 +85,7 @@ class MonteCarloQAgent:
                 if param.grad is not None:
                     gradient_magnitudes.append(torch.norm(param.grad).item())
             self.episode_stats["gradient_average"] = np.mean(gradient_magnitudes)
+            self.episode_stats["qvalue"] = predicted_returns[0].item()
 
     def solve_and_learn(self, qap: QAP):
         env = self.env_class(qap)
