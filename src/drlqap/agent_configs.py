@@ -297,6 +297,17 @@ def dqn_linkedqap(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, 
     )
 
 @define_agent_config()
+def dqn_mse_eps0(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, random_start=False):
+    return DQNAgent(
+        QAPReductionEnv,
+        nn_configs.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False, random_start=random_start),
+        learning_rate=learning_rate,
+        eps_start=0.0,
+        eps_end=0.0,
+        use_mse_loss=True
+    )
+
+@define_agent_config()
 def reinforce_dense():
     return ReinforceAgent(
         QAPReductionEnv,

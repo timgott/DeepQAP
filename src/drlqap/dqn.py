@@ -37,7 +37,8 @@ class DQNAgent:
             eps_decay = 0.0005,
             policy_update_every = 1,
             target_update_every = 100,
-            learning_rate = 1e-3
+            learning_rate = 1e-3,
+            use_mse_loss=False
         ) -> None:
         self.env_class = env_class
         self.policy_net = policy_net
@@ -56,6 +57,7 @@ class DQNAgent:
         self.episode_count = 0
         self.policy_update_every = policy_update_every
         self.target_update_every = target_update_every
+        self.use_mse_loss = use_mse_loss
 
     def compute_epsilon(self, i):
         return self.eps_end + (self.eps_start - self.eps_end) * \
@@ -68,10 +70,13 @@ class DQNAgent:
         # Take sample from observations
         transitions = self.memory.sample(self.batch_size)
 
-        # batching is not possible with the network class at the moment :/
         loss_sum = torch.tensor(0.)
-        criterion = torch.nn.SmoothL1Loss()
-        #criterion = torch.nn.MSELoss()
+        if self.use_mse_loss:
+            criterion = torch.nn.MSELoss()
+        else:
+            criterion = torch.nn.SmoothL1Loss() # Probably worse but default because most runs used it
+        
+        # batching is not possible with the network class at the moment :/        
         for t in transitions:
             q = self.policy_net(t.state)[t.action]
             if t.next_state:
