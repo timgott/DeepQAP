@@ -2,7 +2,7 @@ from drlqap.qap import QAP
 import gurobipy as gp
 from gurobipy import GRB
 
-def create_gurobi_model(qap: QAP):
+def solve_qap_gurobi(qap: QAP, time_limit=None, verbose=False):
     m = gp.Model()
     n = qap.size
 
@@ -16,7 +16,7 @@ def create_gurobi_model(qap: QAP):
 
     # Objective
     m.setObjective(
-        sum(
+        gp.quicksum(
             qap.A[i, j] * qap.B[u, v] * x[i, u] * x[j, v]
             for i in range(n)
             for j in range(n)
@@ -25,9 +25,13 @@ def create_gurobi_model(qap: QAP):
         )
     )
 
-    return m
-
-
-def solve_qap_gurobi(qap: QAP):
-    m = create_gurobi_model(qap)
+    if time_limit:
+        m.Params.TimeLimit = time_limit
+    m.Params.OutputFlag = 1 if verbose else 0
     m.optimize()
+    
+    assignment = [None] * qap.size
+    for i,j in x:
+        if x[i,j].X:
+            assignment[i] = j
+    return m.ObjVal, assignment
