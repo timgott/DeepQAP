@@ -19,6 +19,14 @@ class SimpleQapNet(torch.nn.Module):
         result = self.probability_net(pair_matrix).reshape((qap.size, qap.size))
         return result
 
+
+class PairNorm(torch.nn.Module):
+    def forward(self, x):
+        mean = torch.mean(x, dim=0)
+        centered_x = x - mean
+        stdev = (torch.square(centered_x).sum(dim=1).mean() + 1e-6).sqrt()
+        return centered_x / stdev
+    
 class KeepMeanNorm(torch.nn.Module):
     def forward(self, x):
         mean = torch.mean(x, dim=0)
@@ -122,6 +130,8 @@ class QapConvLayer(torch.nn.Module):
         def create_norm(norm):
             if norm == 'batch_norm':
                 return torch.nn.BatchNorm1d(num_features=w, track_running_stats=False, affine=False)
+            if norm == 'pair_norm':
+                return PairNorm()
             elif norm == 'layer_norm':
                 return FullLayerNorm()
             elif norm == 'keep_mean':
