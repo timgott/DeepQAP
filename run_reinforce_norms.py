@@ -3,7 +3,7 @@ from drlqap.experiment import run_experiment_from_config
 
 agent = "reinforce"
 for seed in range(4):
-    for norm in [None, 'pair_norm', 'mean_separation', 'mean_separation_100x']:
+    for norm in [None, 'pair_norm', 'keep_mean', 'mean_separation', 'mean_separation_100x']:
         args = {
             'learning_rate': 1e-4,
             'gnn_norm': norm,

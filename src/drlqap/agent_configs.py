@@ -297,6 +297,16 @@ def dqn_linkedqap(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, 
     )
 
 @define_agent_config()
+def dqn_linkedqap_eps(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, random_start=False):
+    return DQNAgent(
+        QAPPairLinkEnv,
+        nn_configs.mpgnn_pairs_linkedqap(hidden_size, mlp_depth, gnn_depth, conv_norm='mean_separation', use_edge_encoder=True, combined_transform=False, random_start=random_start),
+        learning_rate=learning_rate,
+        eps_start=0.9,
+        eps_end=0.005,
+    )
+
+@define_agent_config()
 def dqn_mse_eps0(learning_rate=5e-4, hidden_size=32, mlp_depth=1, gnn_depth=2, random_start=False):
     return DQNAgent(
         QAPReductionEnv,
@@ -326,14 +336,17 @@ def reinforce_ms():
     )
 
 @define_agent_config(training_steps=30000)
-def reinforce_ms100x(learning_rate=1e-4, gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0):
+def reinforce(learning_rate=1e-4, gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0, gnn_norm='mean_separation_100x'):
     return ReinforceAgent(
         QAPReductionEnv,
-        nn_configs.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm='mean_separation_100x', use_edge_encoder=True, combined_transform=False),
+        nn_configs.dense(hidden_size, mlp_depth, gnn_depth, layer_norm=False, conv_norm=gnn_norm, use_edge_encoder=True, combined_transform=False),
         policies.sample_pair,
         learning_rate=learning_rate,
         weight_decay=weight_decay
     )
+
+# For compatibility
+define_agent_config(training_steps=30000)(reinforce, name="reinforce_ms100x")
 
 @define_agent_config(training_steps=30000)
 def reinforce_ms100x_onestep(learning_rate=1e-4, gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0):
