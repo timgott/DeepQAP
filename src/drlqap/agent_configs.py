@@ -372,10 +372,10 @@ def a2c(learning_rate=5e-4, gnn_depth=2, mlp_depth=1, hidden_size=32, weight_dec
     )
 
 @define_agent_config()
-def a2c_ms100x(learning_rate=5e-4, gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0):
+def a2c_ms100x(learning_rate=5e-4, gnn_depth=2, mlp_depth=1, hidden_size=32, weight_decay=0, gnn_norm='mean_separation_100x'):
     return A2CAgent(
         QAPReductionEnv,
-        nn_configs.mpgnn_pairs(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True, conv_norm='mean_separation_100x'),
+        nn_configs.mpgnn_pairs(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True, conv_norm=gnn_norm),
         nn_configs.mpgnn_global(hidden_size, mlp_depth, gnn_depth, use_edge_encoder=True),
         policies.sample_pair,
         p_learning_rate=learning_rate,
