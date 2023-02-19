@@ -1,6 +1,8 @@
-# Bachelor Thesis Tim Göttlicher
+# Deep QAP
 
-Using Deep Reinforcement learning to solve Quadratic Assignment Problems.
+This repo contains the code of a Deep Reinforcement Learning agent that is trained to solve [Quadratic Assignment Problems](https://en.wikipedia.org/wiki/Quadratic_assignment_problem) (QAP). 
+
+For details and results see the [thesis paper](./paper/thesis.pdf). As an introduction to the problem and setup, see the [proposal presentation](./paper/presentation-proposal.pdf).
 
 ## Setup
 
